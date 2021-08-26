@@ -12,23 +12,16 @@ IpTc::~IpTc()
 
 }
 
-int IpTc::add_rule(struct rule conditions)
-{
-	//TODO: Добавить правило
-	return 0;
-}
-
 int IpTc::del_rule(struct rule conditions)
 {
 	//TODO: Удалить правило (и все его дубликаты, если имеются)
 	return 0;
 }
 
-//TODO: Убрать костыль для компиляции
-struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache);
-
-int iptc_add_rule(struct rule conditions, string table, string chain, unsigned int index, const char *srcports, const char *destports, const char *target, const char *dnat_to, const int append)
+int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned int index)
 {
+	//TODO: Обработка флагов инверсии
+	
 	//Выделяем память
     struct ipt_entry* chain_entry = (struct ipt_entry*) calloc(1, sizeof (struct ipt_entry));
     if(!chain_entry)
@@ -58,31 +51,21 @@ int iptc_add_rule(struct rule conditions, string table, string chain, unsigned i
     //Заполняем match в зависимости от протокола
     struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, &chain_entry->nfcache);
     
-    //TODO: Заполняем target в зависимости от переданного значения
+    //Заполняем target в зависимости от переданного значения
     struct ipt_entry_target* entry_target = NULL;
-    /*if (strcmp(target, "") == 0 || strcmp(target, IPTC_LABEL_ACCEPT) == 0 || strcmp(target, IPTC_LABEL_DROP) == 0 || strcmp(target, IPTC_LABEL_QUEUE) == 0 || strcmp(target, IPTC_LABEL_RETURN) == 0)
+    if(conditions.action == string("DNAT") || conditions.action == string("SNAT"))
     {
-        size_t size = IPT_ALIGN(sizeof (struct ipt_entry_target)) + IPT_ALIGN(sizeof (int));
-        struct ipt_entry_target* entry_target = (struct ipt_entry_target *) calloc(1, size);
-        entry_target->u.user.target_size = size;
-        strncpy(entry_target->u.user.name, target, IPT_FUNCTION_MAXNAMELEN);
-    }
-    else if (strcmp(target, "DNAT") == 0)
-    {
-        chain_entry->nfcache |= NFC_UNKNOWN;
-        entry_target = get_nat_target(dnat_to, true);
-    }
-    else if (strcmp(target, "SNAT") == 0)
-    {
-        chain_entry->nfcache |= NFC_UNKNOWN;
-        entry_target = get_nat_target(dnat_to, false);
+    	chain_entry->nfcache |= NFC_UNKNOWN;
+        entry_target = get_nat_target(conditions.action, conditions.action_params);
     }
     else
     {
-        printf("Unknown target\n");
-        return;
-    }*/
-    
+    	size_t size = XT_ALIGN(sizeof (struct ipt_entry_target)) + XT_ALIGN(sizeof (int));
+        entry_target = (struct ipt_entry_target *) calloc(1, size);
+        entry_target->u.user.target_size = size;
+        memcpy(entry_target->u.user.name, conditions.action.data(), conditions.action.size());
+    }
+
     //Перевыделяем память
     //TODO: А можно ли перенести заполнение вперед и избавиться от динамического выделения памяти?
     long match_size = (entry_match ? entry_match->u.match_size : 0);
@@ -159,7 +142,7 @@ int iptc_add_rule(struct rule conditions, string table, string chain, unsigned i
     return 0;
 }
 
-struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache)
+struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache)
 {
 
 	//Высчитываем размер
@@ -230,4 +213,74 @@ struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struc
     }
 
     return match;
+}
+
+struct ipt_entry_target* IpTc::get_nat_target(string action, string action_params)
+{
+	//Высчитываем размер и выделяем память
+    size_t size = XT_ALIGN(sizeof(struct ipt_entry_target)) + XT_ALIGN(sizeof(struct ip_nat_multi_range));
+    struct ipt_entry_target* target = (struct ipt_entry_target *) calloc(1, size);
+    target->u.target_size = size;
+    
+    //Заполняем имя
+    memcpy(target->u.user.name, action.data(), action.size());
+    
+    //Парсим диапазон
+    struct ip_nat_range range = parse_range(action_params.data());
+    
+    //Высчитываем новый размер и перевыделяем память
+    size = XT_ALIGN(sizeof(struct ipt_natinfo) + ((struct ipt_natinfo*)target)->mr.rangesize * sizeof(struct ip_nat_range));
+    struct ipt_natinfo *info = (struct ipt_natinfo *) realloc(target, size);
+
+    //Заполняем структуру
+    info->t.u.target_size = size;
+    info->mr.range[info->mr.rangesize] = range;
+    info->mr.rangesize++;
+    
+    return (struct ipt_entry_target*)info;
+}
+
+struct ip_nat_range IpTc::parse_range(string input)
+{
+	struct ip_nat_range range = {};
+
+    char* buffer = &input[0];
+    char* colon = strchr(buffer, ':');
+    char *dash = NULL;
+    if(colon)
+    {
+        range.flags |= IP_NAT_RANGE_PROTO_SPECIFIED;
+
+        int port = atoi(colon + 1);
+        dash = strchr(colon, '-');
+        if (!dash)
+        	range.min.all = range.max.all = htons(port);
+        else
+        {
+            int maxport = atoi(dash + 1);
+            range.min.all = htons(port);
+            range.max.all = htons(maxport);
+        }
+        
+        *colon = '\0';
+    }
+
+    range.flags |= IP_NAT_RANGE_MAP_IPS;
+    dash = strchr(buffer, '-');
+    if (colon && dash && dash > colon)
+        dash = NULL;
+    if (dash)
+        *dash = '\0';
+
+    in_addr_t ip = inet_addr(buffer);
+    range.min_ip = ip;
+    if (dash)
+    {
+        ip = inet_addr(dash + 1);
+        range.max_ip = ip;
+    }
+    else
+        range.max_ip = range.min_ip;
+
+    return range;
 }
