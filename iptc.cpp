@@ -24,6 +24,9 @@ int IpTc::del_rule(struct rule conditions)
 	return 0;
 }
 
+//TODO: Убрать костыль для компиляции
+struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache);
+
 int iptc_add_rule(struct rule conditions, string table, string chain, unsigned int index, const char *srcports, const char *destports, const char *target, const char *dnat_to, const int append)
 {
 	//Выделяем память
@@ -52,8 +55,8 @@ int iptc_add_rule(struct rule conditions, string table, string chain, unsigned i
     if(conditions.out_if.size())
         memcpy(chain_entry->ip.outiface, conditions.out_if.data(), conditions.out_if.size());
     
-    //TODO: Заполняем match в зависимости от протокола
-    struct ipt_entry_match *entry_match = NULL;//get_osi4_match(srcports, destports, &chain_entry->nfcache, true);
+    //Заполняем match в зависимости от протокола
+    struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, &chain_entry->nfcache);
     
     //TODO: Заполняем target в зависимости от переданного значения
     struct ipt_entry_target* entry_target = NULL;
@@ -154,4 +157,77 @@ int iptc_add_rule(struct rule conditions, string table, string chain, unsigned i
     iptc_free(h);
 
     return 0;
+}
+
+struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache)
+{
+
+	//Высчитываем размер
+    size_t size = XT_ALIGN(sizeof(struct ipt_entry_match));
+    switch(proto)
+    {
+    	case protocol::icmp:
+    		size += XT_ALIGN(sizeof(struct ipt_icmp));
+    		break;
+    	case protocol::tcp:
+    		size += XT_ALIGN(sizeof(struct ipt_tcp));
+    		break;
+    	case protocol::udp:
+    		size += XT_ALIGN(sizeof(struct ipt_udp));
+    		break;
+    }
+
+    //Выделяем память
+    struct ipt_entry_match* match = (struct ipt_entry_match *) calloc(1, size);
+    match->u.match_size = size;
+
+    //Заполняем название
+    switch(proto)
+    {
+    	case protocol::icmp:
+    		strncpy(match->u.user.name, "icmp", IPT_FUNCTION_MAXNAMELEN);
+    		break;
+    	case protocol::tcp:
+    		strncpy(match->u.user.name, "tcp", IPT_FUNCTION_MAXNAMELEN);
+    		break;
+    	case protocol::udp:
+    		strncpy(match->u.user.name, "udp", IPT_FUNCTION_MAXNAMELEN);
+    		break;
+    }
+    
+    //Парсим порты и добавляем информацию о них
+    if(proto == protocol::tcp)
+    {
+    	struct ipt_tcp* tcpinfo = (struct ipt_tcp *) match->data;
+    	((struct ipt_tcp*)match->data)->spts[1] = ((struct ipt_tcp*)match->data)->dpts[1] = 0xFFFF;
+    	if(sport.min != 0 || sport.max != 0)
+    	{
+        	*nfcache |= NFC_IP_SRC_PT;
+        	((struct ipt_tcp*)match->data)->spts[0] = sport.min;
+        	((struct ipt_tcp*)match->data)->spts[1] = sport.min;
+    	}
+    	if(dport.min != 0 || dport.max != 0)
+    	{
+        	*nfcache |= NFC_IP_DST_PT;
+        	((struct ipt_tcp*)match->data)->dpts[0] = dport.min;
+        	((struct ipt_tcp*)match->data)->dpts[1] = dport.min;
+    	}
+    }
+    else if(proto == protocol::udp)
+    {
+    	if(sport.min != 0 || sport.max != 0)
+    	{
+        	*nfcache |= NFC_IP_SRC_PT;
+        	((struct ipt_udp*)match->data)->spts[0] = sport.min;
+        	((struct ipt_udp*)match->data)->spts[1] = sport.max;
+    	}
+    	if(dport.min != 0 || dport.max != 0)
+    	{
+        	*nfcache |= NFC_IP_DST_PT;
+        	((struct ipt_udp*)match->data)->dpts[0] = dport.min;
+        	((struct ipt_udp*)match->data)->dpts[1] = dport.max;
+    	}
+    }
+
+    return match;
 }

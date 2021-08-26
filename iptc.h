@@ -7,6 +7,9 @@
 
 #include "structs.h"
 
+#define NFC_IP_SRC_PT		0x0200
+#define NFC_IP_DST_PT		0x0400
+
 class IpTc
 {
 public:
