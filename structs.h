@@ -12,6 +12,7 @@ struct range
 
 enum class protocol: uint8_t
 {
+	none = 0,
 	icmp = 1,
 	tcp = 6,
 	udp = 17

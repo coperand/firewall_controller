@@ -58,7 +58,7 @@ public:
 	~IpTc();
 
 	int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
-	int del_rule(struct rule entry);
+	int del_rule(struct rule conditions, std::string table, std::string chain);
 private:
 	struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
 	struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);
