@@ -9,7 +9,7 @@ int main()
 	IpTc iptc;
 	struct rule conditions = {};
 	conditions.src_ip = inet_addr("10.23.12.4");
-	conditions.dst_ip = inet_addr("10.23.12.25");;
+	conditions.dst_ip = inet_addr("10.23.12.25");
 	conditions.src_mask = inet_addr("255.255.255.0");
 	conditions.dst_mask = inet_addr("255.255.255.0");
 	conditions.proto = protocol::tcp;

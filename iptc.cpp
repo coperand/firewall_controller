@@ -21,7 +21,7 @@ int IpTc::del_rule(struct rule conditions)
 int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned int index)
 {
 	//TODO: Обработка флагов инверсии
-	
+
 	//Выделяем память
     struct ipt_entry* chain_entry = (struct ipt_entry*) calloc(1, sizeof (struct ipt_entry));
     if(!chain_entry)
@@ -49,7 +49,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         memcpy(chain_entry->ip.outiface, conditions.out_if.data(), conditions.out_if.size());
     
     //Заполняем match в зависимости от протокола
-    struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, &chain_entry->nfcache);
+    struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, chain_entry);
     
     //Заполняем target в зависимости от переданного значения
     struct ipt_entry_target* entry_target = NULL;
@@ -110,9 +110,9 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Добавляем правило
     ipt_chainlabel labelit = {};
     strncpy(labelit, chain.data(), chain.size());
-    if(iptc_insert_entry(labelit, chain_entry, index, h))
+    if(!iptc_insert_entry(labelit, chain_entry, index, h))
     {
-        printf("Failed to add entry to netfilter: %s", iptc_strerror(errno));
+        printf("Failed to add entry to netfilter: %s\n", iptc_strerror(errno));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -142,7 +142,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     return 0;
 }
 
-struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, unsigned int *nfcache)
+struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry)
 {
 
 	//Высчитываем размер
@@ -169,12 +169,15 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
     {
     	case protocol::icmp:
     		strncpy(match->u.user.name, "icmp", IPT_FUNCTION_MAXNAMELEN);
+    		chain_entry->ip.proto = IPPROTO_ICMP;
     		break;
     	case protocol::tcp:
     		strncpy(match->u.user.name, "tcp", IPT_FUNCTION_MAXNAMELEN);
+    		chain_entry->ip.proto = IPPROTO_TCP;
     		break;
     	case protocol::udp:
     		strncpy(match->u.user.name, "udp", IPT_FUNCTION_MAXNAMELEN);
+    		chain_entry->ip.proto = IPPROTO_UDP;
     		break;
     }
     
@@ -185,13 +188,13 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
     	((struct ipt_tcp*)match->data)->spts[1] = ((struct ipt_tcp*)match->data)->dpts[1] = 0xFFFF;
     	if(sport.min != 0 || sport.max != 0)
     	{
-        	*nfcache |= NFC_IP_SRC_PT;
+        	chain_entry->nfcache |= NFC_IP_SRC_PT;
         	((struct ipt_tcp*)match->data)->spts[0] = sport.min;
         	((struct ipt_tcp*)match->data)->spts[1] = sport.min;
     	}
     	if(dport.min != 0 || dport.max != 0)
     	{
-        	*nfcache |= NFC_IP_DST_PT;
+        	chain_entry->nfcache |= NFC_IP_DST_PT;
         	((struct ipt_tcp*)match->data)->dpts[0] = dport.min;
         	((struct ipt_tcp*)match->data)->dpts[1] = dport.min;
     	}
@@ -200,13 +203,13 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
     {
     	if(sport.min != 0 || sport.max != 0)
     	{
-        	*nfcache |= NFC_IP_SRC_PT;
+        	chain_entry->nfcache |= NFC_IP_SRC_PT;
         	((struct ipt_udp*)match->data)->spts[0] = sport.min;
         	((struct ipt_udp*)match->data)->spts[1] = sport.max;
     	}
     	if(dport.min != 0 || dport.max != 0)
     	{
-        	*nfcache |= NFC_IP_DST_PT;
+        	chain_entry->nfcache |= NFC_IP_DST_PT;
         	((struct ipt_udp*)match->data)->dpts[0] = dport.min;
         	((struct ipt_udp*)match->data)->dpts[1] = dport.max;
     	}
