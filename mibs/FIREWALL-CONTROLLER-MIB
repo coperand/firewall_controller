@@ -1,0 +1,71 @@
+FIREWALL-CONTROLLER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    unix
+        FROM SMUX-MIB
+    MODULE-IDENTITY, OBJECT-TYPE, Unsigned32,
+    INTEGER, OCTET STRING, OBJECT IDENTIFIER,
+    IpAddress
+        FROM SNMPv2-SMI
+    DisplayString, RowStatus
+        FROM SNMPv2-TC;
+
+firewallController MODULE-IDENTITY
+    LAST-UPDATED "202108300000Z"
+    ORGANIZATION "AO Koncern Sozvezdie"
+    CONTACT-INFO
+            ""
+    DESCRIPTION
+            "The Firewall Controller MIB module."
+    ::= { unix 199 }
+
+firewallFilter OBJECT IDENTIFIER ::= { firewallController 1 }
+
+firewallFilterForwardTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF firewallFilterForwardEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { firewallFilter 1 }
+
+firewallFilterForwardEntry OBJECT-TYPE
+    SYNTAX     firewallFilterForwardEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    INDEX      { fcFFIndex }
+    ::= { firewallFilterForwardTable 1 }
+
+firewallFilterForwardEntry ::= SEQUENCE {
+    fcFFIndex                               Unsigned32,
+    fcFFSrcAddr                             IpAddress,
+    fcFFDstAddr                             IpAddress
+}
+
+fcFFIndex OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { firewallFilterForwardEntry 1 }
+
+fcFFSrcAddr OBJECT-TYPE
+    SYNTAX     IpAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { firewallFilterForwardEntry 2 }
+
+fcFFDstAddr OBJECT-TYPE
+    SYNTAX     IpAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { firewallFilterForwardEntry 3 }
+
+END
