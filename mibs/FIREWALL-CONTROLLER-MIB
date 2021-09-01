@@ -49,7 +49,7 @@ fcFFIndex OBJECT-TYPE
     MAX-ACCESS not-accessible
     STATUS     current
     DESCRIPTION
-            ""
+            "Entry index"
     ::= { firewallFilterForwardEntry 1 }
 
 fcFFSrcAddr OBJECT-TYPE
@@ -57,15 +57,165 @@ fcFFSrcAddr OBJECT-TYPE
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
-            ""
+            "Source ip address"
     ::= { firewallFilterForwardEntry 2 }
+
+fcFFSrcMask OBJECT-TYPE
+    SYNTAX     IpAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Source network mask"
+    ::= { firewallFilterForwardEntry 3 }
 
 fcFFDstAddr OBJECT-TYPE
     SYNTAX     IpAddress
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
-            ""
-    ::= { firewallFilterForwardEntry 3 }
+            "Destination ip address"
+    ::= { firewallFilterForwardEntry 4 }
+
+fcFFDstMask OBJECT-TYPE
+    SYNTAX     IpAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Destination network mask"
+    ::= { firewallFilterForwardEntry 5 }
+
+fcFFInIface OBJECT-TYPE
+    SYNTAX     OCTET STRING
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Input interface"
+    ::= { firewallFilterForwardEntry 6 }
+
+fcFFOutIface OBJECT-TYPE
+    SYNTAX     OCTET STRING
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Output interface"
+    ::= { firewallFilterForwardEntry 7 }
+
+fcFFProto OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        none(0),
+                        icmp(1),
+                        tcp(6),
+                        udp(17)
+                       }
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "OSI-4 protocol"
+    ::= { firewallFilterForwardEntry 8 }
+
+fcFFSrcPortMin OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Source port range left-value"
+    ::= { firewallFilterForwardEntry 9 }
+
+fcFFSrcPortMax OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Source port range right-value"
+    ::= { firewallFilterForwardEntry 10 }
+
+fcFFDstPortMin OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Destination port range left-value"
+    ::= { firewallFilterForwardEntry 11 }
+
+fcFFDstPortMax OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Destination port range right-value"
+    ::= { firewallFilterForwardEntry 12 }
+
+fcFFState OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        none(0),
+                        established(1),
+                        related(2),
+                        new(3),
+                        invalid(4)
+                       }
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Connection state"
+    ::= { firewallFilterForwardEntry 13 }
+
+fcFFAction OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        accept(1),
+                        drop(2),
+                        reject(3),
+                        snat(4),
+                        dnat(5),
+                        redirect(6)
+                       }
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Netfilter action"
+    ::= { firewallFilterForwardEntry 14 }
+
+fcFFActionParams OBJECT-TYPE
+    SYNTAX     OCTET STRING
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Action parameters"
+    ::= { firewallFilterForwardEntry 15 }
+
+fcFFInverseFlags OBJECT-TYPE
+    SYNTAX     BIT STRING
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Rule conditions inverse flags"
+    ::= { firewallFilterForwardEntry 16 }
+
+
+fcFFCommand OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        add(0),
+                        delete(1)
+                       }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+            "Table entry commands"
+    ::= { firewallFilterForwardEntry 17 }
+
+fcFFPolicy OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        drop(0),
+                        accept(1)
+                       }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+            "Default action"
+    ::= { firewallFilter 2  }
 
 END
