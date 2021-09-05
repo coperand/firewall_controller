@@ -1,11 +1,4 @@
-#include <net-snmp/net-snmp-config.h>
-#include <net-snmp/net-snmp-includes.h>
-#include <net-snmp/agent/net-snmp-agent-includes.h>
 #include "firewallFilterForwardTable.h"
-
-#include <stdint.h>
-#include <vector>
-#include <map>
 
 using namespace std;
 
@@ -14,17 +7,17 @@ map<unsigned int, struct rule>::iterator it;
 
 netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
-    if(!containter.size())
+    if(!container.size())
         return NULL;
     
     it = container.begin();
     
-    *my_loop_context = it;
+    *my_loop_context = &it;
     *my_data_context = &it->second;
 
     netsnmp_variable_list *vptr = put_index_data;
     
-    snmp_set_var_value(vptr, it->first, sizeof(it->first));
+    snmp_set_var_value(vptr, &it->first, sizeof(it->first));
     vptr = vptr->next_variable;
 
     return put_index_data;
@@ -35,12 +28,12 @@ netsnmp_variable_list* firewallFilterForwardTable_get_next_data_point(void **my_
     if(++it == container.end())
         return NULL;
     
-    *my_loop_context = it;
+    *my_loop_context = &it;
     *my_data_context = &it->second;
 
     netsnmp_variable_list *vptr = put_index_data;
     
-    snmp_set_var_value(vptr, it->first, sizeof(it->first));
+    snmp_set_var_value(vptr, &it->first, sizeof(it->first));
     vptr = vptr->next_variable;
 
     return put_index_data;
@@ -84,11 +77,11 @@ int check_val(int type, int waiting_type, void *val, vector<int> possible_values
     if (type != waiting_type)
         return SNMP_ERR_WRONGTYPE;
     
-    if(posible_values.size())
+    if(possible_values.size())
     {
         bool found = false;
         for(auto item : possible_values)
-            if(*(reinterpret_cast<int*>(val)) == val)
+            if(*(reinterpret_cast<int*>(val)) == item)
             {
                 found = true;
                 break;
@@ -180,65 +173,65 @@ int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_han
                 switch(table_info->colnum)
                 {
                     case COLUMN_FCFFSRCADDR:
-                        in_addr_t *retval = get_ip(&reinterpret_cast<struct rule*>(data_context)->src_addr, ASN_IPADDRESS, request);
+                        get_ip(&reinterpret_cast<struct rule*>(data_context)->src_ip, ASN_IPADDRESS, request);
                         break;
-
+                    
                     case COLUMN_FCFFSRCMASK:
-                        in_addr_t *retval = get_ip(&reinterpret_cast<struct rule*>(data_context)->src_mask, ASN_IPADDRESS, request);
+                        get_ip(&reinterpret_cast<struct rule*>(data_context)->src_mask, ASN_IPADDRESS, request);
                         break;
-
+                    
                     case COLUMN_FCFFDSTADDR:
-                        in_addr_t *retval = get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_addr, ASN_IPADDRESS, request);
+                        get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_ip, ASN_IPADDRESS, request);
                         break;
-
+                    
                     case COLUMN_FCFFDSTMASK:
-                        in_addr_t *retval = get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_mask, ASN_IPADDRESS, request);
+                        get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_mask, ASN_IPADDRESS, request);
                         break;
-
+                    
                     case COLUMN_FCFFINIFACE:
-                        char *retval = get_char(&reinterpret_cast<struct rule*>(data_context)->in_iface, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->in_if, request);
                         break;
-
+                    
                     case COLUMN_FCFFOUTIFACE:
-                        char *retval = get_char(&reinterpret_cast<struct rule*>(data_context)->out_iface, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->out_if, request);
                         break;
-
+                    
                     case COLUMN_FCFFPROTO:
-                        get_integer<uint8_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->proto), ASN_INTEGER, request);
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->proto), ASN_INTEGER, request);
                         break;
-
+                    
                     case COLUMN_FCFFSRCPORTMIN:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->sport.min), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.min), ASN_UNSIGNED, request);
                         break;
-
+                    
                     case COLUMN_FCFFSRCPORTMAX:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->sport.max), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.max), ASN_UNSIGNED, request);
                         break;
-
+                    
                     case COLUMN_FCFFDSTPORTMIN:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->dport.min), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.min), ASN_UNSIGNED, request);
                         break;
-
+                    
                     case COLUMN_FCFFDSTPORTMAX:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->dport.max), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.max), ASN_UNSIGNED, request);
                         break;
-
+                    
                     case COLUMN_FCFFSTATE:
-                        get_integer<uint8_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request);
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request);
                         break;
-
+                    
                     case COLUMN_FCFFACTION:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->action), ASN_INTEGER, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->action), ASN_INTEGER, request);
                         break;
-
+                    
                     case COLUMN_FCFFACTIONPARAMS:
-                        char *retval = get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request);
                         break;
-
+                    
                     case COLUMN_FCFFINVERSEFLAGS:
-                        get_integer<uint16_t>(&reinterpret_cast<uint8_t*>(reinterpret_cast<struct rule*>(data_context)->inv_flags), ASN_OCTET_STR request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->inv_flags), ASN_OCTET_STR, request);
                         break;
-
+                    
                     default:
                         netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
                 }
@@ -287,7 +280,7 @@ int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_han
                             break;
                           
                           case COLUMN_FCFFPROTO:
-                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), {FCFFPROTO_NONE,FCFFPROTO_ICMP, FCFFPROTO_TCP, FCFFPROTO_UDP});
+                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), FCFFPROTO_values);
                             if (ret != 0)
                                 netsnmp_set_request_error(reqinfo, request, ret);
                             break;
@@ -317,13 +310,13 @@ int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_han
                             break;
                           
                           case COLUMN_FCFFSTATE:
-                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), {FCFFSTATE_NONE, FCFFSTATE_ESTABLISHED, FCFFSTATE_RELATED, FCFFSTATE_NEW, FCFFSTATE_INVALID});
+                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), FCFFSTATE_values);
                             if (ret != 0)
                                 netsnmp_set_request_error(reqinfo, request, ret);
                             break;
                           
                           case COLUMN_FCFFACTION:
-                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), {FCFFACTION_ACCEPT, FCFFACTION_DROP, FCFFACTION_REJECT, FCFFACTION_SNAT, FCFFACTION_DNAT, FCFFACTION_REDIRECT});
+                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), FCFFACTION_values);
                             if (ret != 0)
                                 netsnmp_set_request_error(reqinfo, request, ret);
                             break;
@@ -341,7 +334,7 @@ int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_han
                             break;
                           
                           case COLUMN_FCFFCOMMAND:
-                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), {FCFFCOMMAND_ADD, FCFFCOMMAND_DELETE});
+                            ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), FCFFCOMMAND_values);
                             if (ret != 0)
                                 netsnmp_set_request_error(reqinfo, request, ret);
                             break;
