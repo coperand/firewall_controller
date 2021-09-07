@@ -2,7 +2,8 @@
 
 using namespace std;
 
-map<unsigned int, struct rule> container;
+map<unsigned int, struct rule> container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, 3, "test", 1}},
+                                            {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, 4, "qwer", 0}}};
 map<unsigned int, struct rule>::iterator it;
 
 netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)

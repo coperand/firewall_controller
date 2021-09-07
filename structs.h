@@ -35,6 +35,8 @@ struct rule
 	//Порты
 	struct range sport;
 	struct range dport;
+	//Состояние
+	uint8_t state;
 	//Действие
 	std::string action;
 	std::string action_params;

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <stdio.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 #include <vector>
 #include <map>
 
