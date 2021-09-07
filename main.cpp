@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 //#include "iptc.h"
-#include "firewallFilterForwardTable.h"
+#include "snmp_handler.h"
 
 using namespace std;
 
@@ -24,14 +24,7 @@ int main()
 	
 	//================================================
 	
-	netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
-	SOCK_STARTUP;
-	
-	init_agent("My app");
-	
-	init_firewallFilterForwardTable();
-	
-	init_snmp("Test");
+	SnmpHandler snmp;
 	
 	while(1)
 	{

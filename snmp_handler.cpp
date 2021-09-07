@@ -1,12 +1,30 @@
-#include "firewallFilterForwardTable.h"
+#include "snmp_handler.h"
 
 using namespace std;
 
-map<unsigned int, struct rule> container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, 3, "test", 1}},
+map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, 3, "test", 1}},
                                             {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, 4, "qwer", 0}}};
-map<unsigned int, struct rule>::iterator it;
+map<unsigned int, struct rule>::iterator SnmpHandler::it = {};
 
-netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
+SnmpHandler::SnmpHandler()
+{
+    //TODO: Вынести имя в параметры
+    
+    netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
+    SOCK_STARTUP;
+    
+    init_agent("My app");
+    init_snmp("Test");
+    
+    init_firewallFilterForwardTable();
+}
+
+SnmpHandler::~SnmpHandler()
+{
+    //TODO: Завершение работы с snmp
+}
+
+netsnmp_variable_list* SnmpHandler::firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(!container.size())
         return NULL;
@@ -24,7 +42,7 @@ netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my
     return put_index_data;
 }
 
-netsnmp_variable_list* firewallFilterForwardTable_get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
+netsnmp_variable_list* SnmpHandler::firewallFilterForwardTable_get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(++it == container.end())
         return NULL;
@@ -40,13 +58,13 @@ netsnmp_variable_list* firewallFilterForwardTable_get_next_data_point(void **my_
     return put_index_data;
 }
 
-void* firewallFilterForwardTable_create_data_context(netsnmp_variable_list *index_data, int column)
+void* SnmpHandler::firewallFilterForwardTable_create_data_context(netsnmp_variable_list *index_data, int column)
 {
     return NULL;
 }
 
 template <typename T>
-void get_integer(T* data, int type, netsnmp_request_info *request)
+void SnmpHandler::get_integer(T* data, int type, netsnmp_request_info *request)
 {
     if(*data == static_cast<T>(~0))
         return;
@@ -54,7 +72,7 @@ void get_integer(T* data, int type, netsnmp_request_info *request)
     snmp_set_var_typed_value(request->requestvb, type, data, sizeof(T));
 }
 
-void get_ip(in_addr_t* data, int type, netsnmp_request_info *request)
+void SnmpHandler::get_ip(in_addr_t* data, int type, netsnmp_request_info *request)
 {
     if(*data == 0)
         return;
@@ -62,7 +80,7 @@ void get_ip(in_addr_t* data, int type, netsnmp_request_info *request)
     snmp_set_var_typed_value(request->requestvb, type, data, sizeof(in_addr_t));
 }
 
-void get_char(string *data, netsnmp_request_info *request)
+void SnmpHandler::get_char(string *data, netsnmp_request_info *request)
 {
     if(data->size() == 0)
         return;
@@ -70,7 +88,7 @@ void get_char(string *data, netsnmp_request_info *request)
     snmp_set_var_typed_value(request->requestvb, ASN_OCTET_STR, data->data(), data->size());
 }
 
-int check_val(int type, int waiting_type, void *val, vector<int> possible_values)
+int SnmpHandler::check_val(int type, int waiting_type, void *val, vector<int> possible_values)
 {
     if (!val)
         return SNMP_ERR_GENERR;
@@ -95,7 +113,7 @@ int check_val(int type, int waiting_type, void *val, vector<int> possible_values
     return 0;
 }
 
-void initialize_table_firewallFilterForwardTable()
+void SnmpHandler::initialize_table_firewallFilterForwardTable()
 {
     const oid firewallFilterForwardTable_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
     netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
@@ -123,12 +141,12 @@ void initialize_table_firewallFilterForwardTable()
     netsnmp_register_table_iterator(my_handler, iinfo);
 }
 
-void init_firewallFilterForwardTable()
+void SnmpHandler::init_firewallFilterForwardTable()
 {
     initialize_table_firewallFilterForwardTable();
 }
 
-int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+int SnmpHandler::firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
 {
     for(netsnmp_request_info *request = requests; request; request = request->next)
     {

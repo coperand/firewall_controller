@@ -41,11 +41,29 @@ struct rule
     uint16_t inv_flags;
 };
 
-/* function declarations */
-void init_firewallFilterForwardTable(void);
-void initialize_table_firewallFilterForwardTable(void);
-Netsnmp_Node_Handler firewallFilterForwardTable_handler;
-
+class SnmpHandler
+{
+public:
+    SnmpHandler();
+    ~SnmpHandler();
+private:
+    static std::map<unsigned int, struct rule> container;
+    static std::map<unsigned int, struct rule>::iterator it;
+    
+    static netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
+    static netsnmp_variable_list* firewallFilterForwardTable_get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
+    static void* firewallFilterForwardTable_create_data_context(netsnmp_variable_list *index_data, int column);
+    template <typename T>
+    static void get_integer(T* data, int type, netsnmp_request_info *request);
+    static void get_ip(in_addr_t* data, int type, netsnmp_request_info *request);
+    static void get_char(std::string *data, netsnmp_request_info *request);
+    static int check_val(int type, int waiting_type, void *val, std::vector<int> possible_values);
+    
+    void initialize_table_firewallFilterForwardTable();
+    void init_firewallFilterForwardTable();
+    
+    static int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
+};
 
 /* column number definitions for table firewallFilterForwardTable */
        #define COLUMN_FCFFINDEX			1
