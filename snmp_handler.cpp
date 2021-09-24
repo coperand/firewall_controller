@@ -370,98 +370,87 @@ int SnmpHandler::firewallFilterForwardTable_handler(netsnmp_mib_handler *handler
                 {
                           case COLUMN_FCFFSRCADDR:
                             {
-                                //ret = set_fcFFSrcAddr(ci->data_context, (in_addr_t *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->src_ip = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->src_ip += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFSRCMASK:
                             {
-                                //ret = set_fcFFSrcMask(ci->data_context, (in_addr_t *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->src_mask = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->src_mask += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFDSTADDR:
                             {
-                                //ret = set_fcFFDstAddr(ci->data_context, (in_addr_t *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->dst_ip = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->dst_ip += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFDSTMASK:
                             {
-                                //ret = set_fcFFDstMask(ci->data_context, (in_addr_t *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->dst_mask = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->dst_mask += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFINIFACE:
                             {
-                                //ret = set_fcFFInIface(ci->data_context, (char *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->in_if.clear();
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->in_if.push_back(request->requestvb->val.string[j]);
                             }
                             break;
                           case COLUMN_FCFFOUTIFACE:
                             {
-                                //ret = set_fcFFOutIface(ci->data_context, (char *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->out_if.clear();
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->out_if.push_back(request->requestvb->val.string[j]);
                             }
                             break;
                           case COLUMN_FCFFPROTO:
                             {
-                                //ret = set_fcFFProto(ci->data_context, (long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                unsigned int temp = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    temp += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
+                                reinterpret_cast<struct rule*>(data_context)->proto = static_cast<protocol>(temp);
                             }
                             break;
                           case COLUMN_FCFFSRCPORTMIN:
                             {
-                                //ret = set_fcFFSrcPortMin(ci->data_context, (u_long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->sport.min = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->sport.min += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFSRCPORTMAX:
                             {
-                                //ret = set_fcFFSrcPortMax(ci->data_context, (u_long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->sport.max = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->sport.max += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFDSTPORTMIN:
                             {
-                                //ret = set_fcFFDstPortMin(ci->data_context, (u_long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->dport.min = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->dport.min += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFDSTPORTMAX:
                             {
-                                //ret = set_fcFFDstPortMax(ci->data_context, (u_long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->dport.max = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->dport.max += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFSTATE:
                             {
-                                //ret = set_fcFFState(ci->data_context, (long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->state = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->state += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFACTION:
@@ -470,30 +459,30 @@ int SnmpHandler::firewallFilterForwardTable_handler(netsnmp_mib_handler *handler
                                 int ret = SNMP_ERR_NOERROR;
                                 if (ret)
                                     netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->dst_mask = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->dst_mask += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFACTIONPARAMS:
                             {
-                                //ret = set_fcFFActionParams(ci->data_context, (char *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->action_params.clear();
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->action_params.push_back(request->requestvb->val.string[j]);
                             }
                             break;
                           case COLUMN_FCFFINVERSEFLAGS:
                             {
-                                //ret = set_fcFFInverseFlags(ci->data_context, (char *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->action = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->action += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                           case COLUMN_FCFFCOMMAND:
                             {
-                                //ret = set_fcFFCommand(ci->data_context, (long *) request->requestvb->val.string, request->requestvb->val_len);
-                                int ret = SNMP_ERR_NOERROR;
-                                if (ret)
-                                    netsnmp_set_request_error(reqinfo, request, ret);
+                                reinterpret_cast<struct rule*>(data_context)->inv_flags = 0;
+                                for(unsigned int j = 0; j < request->requestvb->val_len; j++)
+                                    reinterpret_cast<struct rule*>(data_context)->inv_flags += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                             }
                             break;
                  }
