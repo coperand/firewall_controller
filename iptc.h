@@ -5,6 +5,7 @@
 #include <string>
 #include <arpa/inet.h>
 #include <libiptc/libiptc.h>
+#include <linux/netfilter/xt_conntrack.h>
 
 #include "structs.h"
 
@@ -12,7 +13,7 @@
 #define NFC_IP_DST_PT	0x0400
 #define NFC_UNKNOWN 	0x4000
 
-#define IP_NAT_RANGE_MAP_IPS 			1
+#define IP_NAT_RANGE_MAP_IPS 		1
 #define IP_NAT_RANGE_PROTO_SPECIFIED 	2
 
 union ip_conntrack_manip_proto
@@ -59,6 +60,7 @@ public:
 
 	int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
 	int del_rule(struct rule conditions, std::string table, std::string chain);
+	void print_rules(std::string table, std::string chain);
 private:
 	struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
 	struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);
