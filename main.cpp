@@ -24,7 +24,10 @@ int main()
 	
 	//================================================
 	
-	SnmpHandler snmp;
+	oid filter_forward_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
+	oid filter_input_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 2};
+	SnmpHandler snmp1(filter_forward_oid, sizeof(filter_forward_oid), "filterForwardTable");
+	SnmpHandler snmp2(filter_input_oid, sizeof(filter_input_oid), "filterInputTable");
 	
 	while(1)
 	{

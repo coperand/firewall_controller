@@ -44,7 +44,8 @@ struct rule
 class SnmpHandler
 {
 public:
-    SnmpHandler();
+    SnmpHandler() = delete;
+    SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name);
     ~SnmpHandler();
 private:
     static std::map<unsigned int, struct rule> container;
@@ -55,7 +56,7 @@ private:
     static netsnmp_variable_list* get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
     static void* create_data_context(netsnmp_variable_list *index_data, int column);
     //Функция инициализации таблицы
-    static void init_table(oid* table_oid, unsigned int len, std::string table_name);
+    static void init_table(oid* table_oid, unsigned int oid_len, std::string table_name);
     //Функция обработки запросов
     static int request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
     

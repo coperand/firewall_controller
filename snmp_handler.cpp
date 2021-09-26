@@ -6,7 +6,7 @@ map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168
                                             {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, 4, "qwer", 0}}};
 map<unsigned int, struct rule>::iterator SnmpHandler::it = {};
 
-SnmpHandler::SnmpHandler()
+SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name)
 {
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
     SOCK_STARTUP;
@@ -14,9 +14,7 @@ SnmpHandler::SnmpHandler()
     init_agent("Graduation_agent");
     init_snmp("Graduation_snmp");
     
-    oid firewallFilterForwardTable_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
-    string table_name = "firewallFilterForwardTable";
-    init_table(firewallFilterForwardTable_oid, sizeof(firewallFilterForwardTable_oid), table_name);
+    init_table(table_oid, oid_len, table_name);
 }
 
 SnmpHandler::~SnmpHandler()
@@ -63,13 +61,13 @@ void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int co
     return NULL;
 }
 
-void SnmpHandler::init_table(oid* table_oid, unsigned int len, string table_name)
+void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_name)
 {
     netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
     netsnmp_handler_registration *my_handler = netsnmp_create_handler_registration(table_name.data(),
                                                 request_handler,
                                                 table_oid,
-                                                len / sizeof(oid),
+                                                oid_len / sizeof(oid),
                                                 HANDLER_CAN_RWRITE);
     netsnmp_iterator_info *iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
     
