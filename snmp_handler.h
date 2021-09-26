@@ -50,42 +50,44 @@ private:
     static std::map<unsigned int, struct rule> container;
     static std::map<unsigned int, struct rule>::iterator it;
     
-    static netsnmp_variable_list* firewallFilterForwardTable_get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
-    static netsnmp_variable_list* firewallFilterForwardTable_get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
-    static void* firewallFilterForwardTable_create_data_context(netsnmp_variable_list *index_data, int column);
+    //Функции, связанные с контекстом
+    static netsnmp_variable_list* get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
+    static netsnmp_variable_list* get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
+    static void* create_data_context(netsnmp_variable_list *index_data, int column);
+    //Функция инициализации таблицы
+    static void init_table(oid* table_oid, unsigned int len, std::string table_name);
+    //Функция обработки запросов
+    static int request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
+    
+    //Вспомогательные функции, используемые при обработке запросов
     template <typename T>
     static void get_integer(T* data, int type, netsnmp_request_info *request);
     static void get_ip(in_addr_t* data, int type, netsnmp_request_info *request);
     static void get_char(std::string *data, netsnmp_request_info *request);
     static int check_val(int type, int waiting_type, void *val, std::vector<int> possible_values);
-    
-    void initialize_table_firewallFilterForwardTable();
-    void init_firewallFilterForwardTable();
-    
-    static int firewallFilterForwardTable_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
 };
 
 /* column number definitions for table firewallFilterForwardTable */
-       #define COLUMN_FCFFINDEX			1
-       #define COLUMN_FCFFSRCADDR		2
-       #define COLUMN_FCFFSRCMASK		3
-       #define COLUMN_FCFFDSTADDR		4
-       #define COLUMN_FCFFDSTMASK		5
-       #define COLUMN_FCFFINIFACE		6
-       #define COLUMN_FCFFOUTIFACE		7
-       #define COLUMN_FCFFPROTO			8
-       #define COLUMN_FCFFSRCPORTMIN		9
-       #define COLUMN_FCFFSRCPORTMAX		10
-       #define COLUMN_FCFFDSTPORTMIN		11
-       #define COLUMN_FCFFDSTPORTMAX		12
-       #define COLUMN_FCFFSTATE			13
-       #define COLUMN_FCFFACTION		14
-       #define COLUMN_FCFFACTIONPARAMS		15
-       #define COLUMN_FCFFINVERSEFLAGS		16
-       #define COLUMN_FCFFCOMMAND		17
+       #define COLUMN_INDEX		1
+       #define COLUMN_SRCADDR		2
+       #define COLUMN_SRCMASK		3
+       #define COLUMN_DSTADDR		4
+       #define COLUMN_DSTMASK		5
+       #define COLUMN_INIFACE		6
+       #define COLUMN_OUTIFACE		7
+       #define COLUMN_PROTO		8
+       #define COLUMN_SRCPORTMIN	9
+       #define COLUMN_SRCPORTMAX	10
+       #define COLUMN_DSTPORTMIN	11
+       #define COLUMN_DSTPORTMAX	12
+       #define COLUMN_STATE		13
+       #define COLUMN_ACTION		14
+       #define COLUMN_ACTIONPARAMS	15
+       #define COLUMN_INVERSEFLAGS	16
+       #define COLUMN_COMMAND		17
 
 /*possible values*/
-const std::vector<int> FCFFPROTO_values = {0, 1, 6, 17};
-const std::vector<int> FCFFSTATE_values = {0, 1, 2, 3, 4};
-const std::vector<int> FCFFACTION_values = {1, 2, 3, 4, 5, 6};
-const std::vector<int> FCFFCOMMAND_values = {0, 1};
+const std::vector<int> PROTO_values = {0, 1, 6, 17};
+const std::vector<int> STATE_values = {0, 1, 2, 3, 4};
+const std::vector<int> ACTION_values = {1, 2, 3, 4, 5, 6};
+const std::vector<int> COMMAND_values = {0, 1};
