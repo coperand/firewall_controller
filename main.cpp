@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-//#include "iptc.h"
+#include "iptc.h"
 #include "snmp_handler.h"
 
 using namespace std;

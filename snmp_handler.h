@@ -11,36 +11,7 @@
 #include <net-snmp/net-snmp-includes.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
-struct range
-{
-    uint16_t min;
-    uint16_t max;
-};
-
-enum class protocol: uint8_t
-{
-    none = 0,
-    icmp = 1,
-    tcp = 6,
-    udp = 17
-};
-
-struct rule
-{
-    uint32_t src_ip;
-    uint32_t dst_ip;
-    uint32_t src_mask;
-    uint32_t dst_mask;
-    std::string in_if;
-    std::string out_if;
-    protocol proto;
-    struct range sport;
-    struct range dport;
-    uint8_t state;
-    std::string action;
-    std::string action_params;
-    uint16_t inv_flags;
-};
+#include "structs.h"
 
 class SnmpHandler
 {
