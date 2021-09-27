@@ -409,49 +409,51 @@ struct ip_nat_range IpTc::parse_range(string input)
     return range;
 }
 
-void IpTc::print_rules(string table, string chain)
+map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
 {
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
     {
         printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
-        return;
+        return {};
     }
     if(!iptc_is_chain(chain.data(), h))
     {
         printf("No %s chain found\n", chain.data());
-        return;
+        return {};
     }
     
-    struct ipt_counters counters;
-    printf("Policy: %s\n\n", iptc_get_policy(chain.data(), &counters, h));
+    //TODO: Вернуть число, характеризующее Policy
+    //struct ipt_counters counters;
+    //printf("Policy: %s\n\n", iptc_get_policy(chain.data(), &counters, h));
     
-    for(const ipt_entry *it = iptc_first_rule(chain.data(), h); it != NULL; it = iptc_next_rule(it, h))
+    map<unsigned int, struct rule> rules;
+    unsigned int j = 0;
+    for(const ipt_entry *it = iptc_first_rule(chain.data(), h); it != NULL; it = iptc_next_rule(it, h), j++)
     {
-        printf("Rule:\n");
+        struct rule condition;
         
-        printf("Counters: %llu:%llu\n", it->counters.pcnt, it->counters.bcnt);
         if(it->ip.src.s_addr != 0)
         {
-            printf("Src ip: %s\n", inet_ntoa(it->ip.src));
-            printf("Src mask: %s\n", inet_ntoa(it->ip.smsk));
+            condition.src_ip = it->ip.src.s_addr;
+            condition.src_mask = it->ip.smsk.s_addr;
         }
         if(it->ip.dst.s_addr != 0)
         {
-            printf("Dst ip: %s\n", inet_ntoa(it->ip.dst));
-            printf("Dst mask: %s\n", inet_ntoa(it->ip.dmsk));
+            condition.dst_ip = it->ip.dst.s_addr;
+            condition.dst_mask = it->ip.dmsk.s_addr;
         }
         if(it->ip.iniface[0] != 0)
-            printf("In interface: %s\n", it->ip.iniface);
+            condition.in_if = string(it->ip.iniface);
         if(it->ip.outiface[0] != 0)
-            printf("Out interface: %s\n", it->ip.outiface);
+            condition.out_if = string(it->ip.outiface);
         if(it->ip.proto != 0)
-            printf("Proto: %d\n", it->ip.proto); //6 - tcp, 17 - udp, 1 - icmp
+            if(it->ip.proto == 1 || it->ip.proto == 6 || it->ip.proto == 17)
+                condition.proto = static_cast<protocol>(it->ip.proto);
         if(it->ip.invflags != 0)                            //128  64   32 16  8   4   2   1
             printf("Inv flags: 0x%.2x\n", it->ip.invflags); // hz proto hz dst src hz out in
         
-        const char *target = iptc_get_target(it, h);
-        printf("Target: %s\n", target);
+        condition.action = string(iptc_get_target(it, h));
         
         if(it->target_offset)
         {
@@ -459,24 +461,32 @@ void IpTc::print_rules(string table, string chain)
             {
                 struct xt_entry_match* match = (struct xt_entry_match *)((char *)it + j);
                 
-                printf("Match %s\n", match->u.user.name);
-                if(strcmp(match->u.user.name, "conntrack") == 0)
+                if(strcmp(match->u.user.name, "udp") == 0)
                 {
-                    printf("Conntrack detected\n");
-                    printf("Size: %d\n", match->u.user.match_size);
-                    printf("Revision: %d\n", match->u.user.revision);
+                    condition.sport.min = ((struct ipt_udp*)match->data)->spts[0];
+                    condition.sport.max = ((struct ipt_udp*)match->data)->spts[1];
                     
-                    const struct xt_conntrack_mtinfo3 *data = (const struct xt_conntrack_mtinfo3 *)match->data;
-                    printf("%x\n", data->state_mask);// 8     4         2         1
-                                                     //NEW RELATED ESTABLISHED INVALID
+                    condition.dport.min = ((struct ipt_udp*)match->data)->dpts[0];
+                    condition.dport.max = ((struct ipt_udp*)match->data)->dpts[1];
                 }
+                else if(strcmp(match->u.user.name, "tcp") == 0)
+                {
+                    condition.sport.min = ((struct ipt_tcp*)match->data)->spts[0];
+                    condition.sport.max = ((struct ipt_tcp*)match->data)->spts[1];
+                    
+                    condition.dport.min = ((struct ipt_tcp*)match->data)->dpts[0];
+                    condition.dport.max = ((struct ipt_tcp*)match->data)->dpts[1];
+                }
+                else if(strcmp(match->u.user.name, "conntrack") == 0)
+                    condition.state = ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask;
                 
                 j += match->u.match_size;
             }
         }
-        printf("\n\n");
+        
+        rules[j] = condition;
     }
     
-    printf("OK\n");
     iptc_free(h);
+    return rules;
 }

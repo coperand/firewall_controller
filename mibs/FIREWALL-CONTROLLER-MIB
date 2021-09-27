@@ -147,13 +147,13 @@ fcFFDstPortMax OBJECT-TYPE
     ::= { firewallFilterForwardEntry 12 }
 
 fcFFState OBJECT-TYPE
-    SYNTAX     INTEGER
+    SYNTAX     BIT STRING
                        {
                         none(0),
-                        established(1),
-                        related(2),
-                        new(3),
-                        invalid(4)
+                        invalid(1),
+                        established(2),
+                        related(4),
+                        new(8),
                        }
     MAX-ACCESS read-create
     STATUS     current

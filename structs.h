@@ -22,26 +22,26 @@ enum class protocol: uint8_t
 struct rule
 {
     //Ip-адреса
-    uint32_t src_ip;
-    uint32_t dst_ip;
+    uint32_t src_ip = 0;
+    uint32_t dst_ip = 0;
     //Маски
-    uint32_t src_mask;
-    uint32_t dst_mask;
+    uint32_t src_mask = 0;
+    uint32_t dst_mask = 0;
     //Интерфейсы
-    std::string in_if;
-    std::string out_if;
+    std::string in_if = {};
+    std::string out_if = {};
     //Протокол
-    protocol proto;
+    protocol proto = protocol::none;
     //Порты
-    struct range sport;
-    struct range dport;
+    struct range sport = {0, 0};
+    struct range dport = {0, 0};
     //Состояние
-    uint8_t state;
+    uint8_t state = 0;
     //Действие
     std::string action;
     std::string action_params;
     //Флаги инверсии (побитово)
-    uint16_t inv_flags;
+    uint16_t inv_flags = 0;
     
     bool validate(struct rule entry)
     {

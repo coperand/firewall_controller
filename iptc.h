@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <libiptc/libiptc.h>
 #include <linux/netfilter/xt_conntrack.h>
+#include <map>
 
 #include "structs.h"
 
@@ -18,33 +19,33 @@
 
 union ip_conntrack_manip_proto
 {
-	u_int16_t all;
-
-	struct
-	{
-		u_int16_t port;
-	} tcp;
-	struct
-	{
-		u_int16_t port;
-	} udp;
-	struct
-	{
-		u_int16_t id;
-	} icmp;
+    u_int16_t all;
+    
+    struct
+    {
+        u_int16_t port;
+    } tcp;
+    struct
+    {
+        u_int16_t port;
+    } udp;
+    struct
+    {
+        u_int16_t id;
+    } icmp;
 };
 
 struct ip_nat_range
 {
-	unsigned int flags;
-	u_int32_t min_ip, max_ip;
-	union ip_conntrack_manip_proto min, max;
+    unsigned int flags;
+    u_int32_t min_ip, max_ip;
+    union ip_conntrack_manip_proto min, max;
 };
 
 struct ip_nat_multi_range
 {
-	unsigned int rangesize;
-	struct ip_nat_range range[1];
+    unsigned int rangesize;
+    struct ip_nat_range range[1];
 };
 
 struct ipt_natinfo {
@@ -55,14 +56,14 @@ struct ipt_natinfo {
 class IpTc
 {
 public:
-	IpTc();
-	~IpTc();
-
-	int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
-	int del_rule(struct rule conditions, std::string table, std::string chain);
-	void print_rules(std::string table, std::string chain);
+    IpTc();
+    ~IpTc();
+    
+    int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
+    int del_rule(struct rule conditions, std::string table, std::string chain);
+    std::map<unsigned int, struct rule> print_rules(std::string table, std::string chain);
 private:
-	struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
-	struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);
-	struct ip_nat_range parse_range(std::string input);
+    struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
+    struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);
+    struct ip_nat_range parse_range(std::string input);
 };
