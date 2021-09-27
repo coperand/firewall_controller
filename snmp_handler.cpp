@@ -2,8 +2,8 @@
 
 using namespace std;
 
-map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, 3, "test", 1}},
-                                            {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, 4, "qwer", 0}}};
+map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, "accept", "test", 1}},
+                                            {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, "DROP", "qwer", 0}}};
 map<unsigned int, struct rule>::iterator SnmpHandler::it = {};
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name)
@@ -182,9 +182,32 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         break;
                     
                     case COLUMN_ACTION:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->action), ASN_INTEGER, request);
+                    {
+                        if(reinterpret_cast<struct rule*>(data_context)->action.size() == 0)
+                            break;
+                        
+                        //Пишем строку, приведенную к нижнему регистру, во временную переменную
+                        string temp;
+                        temp.resize(reinterpret_cast<struct rule*>(data_context)->action.size());
+                        transform(reinterpret_cast<struct rule*>(data_context)->action.begin(), reinterpret_cast<struct rule*>(data_context)->action.end(), temp.begin(), ::tolower);
+                        
+                        uint16_t number = 0;
+                        if(temp == "accept")
+                            number = 1;
+                        else if(temp == "drop")
+                            number = 2;
+                        else if(temp == "reject")
+                            number = 3;
+                        else if(temp == "snat")
+                            number = 4;
+                        else if(temp == "dnat")
+                            number = 5;
+                        else if(temp == "redirect")
+                            number = 6;
+                        
+                        snmp_set_var_typed_value(request->requestvb, ASN_INTEGER, &number, sizeof(uint16_t));
                         break;
-                    
+                    }
                     case COLUMN_ACTIONPARAMS:
                         get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request);
                         break;
@@ -425,9 +448,24 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     }
                     case COLUMN_ACTION:
                     {
-                        reinterpret_cast<struct rule*>(data_context)->dst_mask = 0;
+                        unsigned int action = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
-                            reinterpret_cast<struct rule*>(data_context)->dst_mask += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
+                            action += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
+                        
+                        if(action == 0)
+                            reinterpret_cast<struct rule*>(data_context)->action = "UNKNOWN";
+                        if(action == 1)
+                            reinterpret_cast<struct rule*>(data_context)->action = "ACCEPT";
+                        if(action == 2)
+                            reinterpret_cast<struct rule*>(data_context)->action = "DROP";
+                        if(action == 3)
+                            reinterpret_cast<struct rule*>(data_context)->action = "REJECT";
+                        if(action == 4)
+                            reinterpret_cast<struct rule*>(data_context)->action = "SNAT";
+                        if(action == 5)
+                            reinterpret_cast<struct rule*>(data_context)->action = "DNAT";
+                        if(action == 6)
+                            reinterpret_cast<struct rule*>(data_context)->action = "REJECT";
                         
                         break;
                     }
@@ -441,17 +479,15 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     }
                     case COLUMN_INVERSEFLAGS:
                     {
-                        reinterpret_cast<struct rule*>(data_context)->action = 0;
+                        reinterpret_cast<struct rule*>(data_context)->inv_flags = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
-                            reinterpret_cast<struct rule*>(data_context)->action += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
+                            reinterpret_cast<struct rule*>(data_context)->inv_flags += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                         
                         break;
                     }
                     case COLUMN_COMMAND:
                     {
-                        reinterpret_cast<struct rule*>(data_context)->inv_flags = 0;
-                        for(unsigned int j = 0; j < request->requestvb->val_len; j++)
-                            reinterpret_cast<struct rule*>(data_context)->inv_flags += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
+                        //TODO: Команда
                         
                         break;
                     }

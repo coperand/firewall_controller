@@ -164,6 +164,7 @@ fcFFState OBJECT-TYPE
 fcFFAction OBJECT-TYPE
     SYNTAX     INTEGER
                        {
+                        unknown(0),
                         accept(1),
                         drop(2),
                         reject(3),

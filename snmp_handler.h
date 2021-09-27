@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
@@ -36,7 +37,7 @@ struct rule
     struct range sport;
     struct range dport;
     uint8_t state;
-    uint8_t action;
+    std::string action;
     std::string action_params;
     uint16_t inv_flags;
 };
