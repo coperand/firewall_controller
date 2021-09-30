@@ -9,20 +9,21 @@ int main()
 {
 	IpTc iptc;
 	struct rule conditions = {};
-	conditions.src_ip = inet_addr("10.23.12.4");
+	//conditions.src_ip = inet_addr("10.23.12.4");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
-	conditions.src_mask = inet_addr("255.255.255.255");
-	conditions.dst_mask = inet_addr("255.255.255.255");
-	conditions.proto = protocol::udp;
+	//conditions.src_mask = inet_addr("255.255.255.255");
+	//conditions.dst_mask = inet_addr("255.255.255.255");
+	//conditions.proto = protocol::tcp;
 	//conditions.sport = {1025, 1025};
 	//conditions.dport = {1026, 1026};
-	conditions.action = string("SNAT");
-	conditions.action_params = string("192.168.1.1-192.168.1.10:11");
+	conditions.state = 0x01;
+	conditions.action = string("ACCEPT");
+	//conditions.action_params = string("192.168.1.1-192.168.1.10:11");
 	
-	//iptc.add_rule(conditions, "nat", "POSTROUTING", 0);
+	iptc.add_rule(conditions, "filter", "FORWARD", 0);
 	//iptc.del_rule(conditions, "nat", "PREROUTING");
 	
-	auto container = iptc.print_rules("nat", "POSTROUTING");
+	auto container = iptc.print_rules("filter", "FORWARD");
 	printf("========================\n");
 	for(auto item : container)
 	{

@@ -172,6 +172,23 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Заполняем match в зависимости от протокола
     struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, chain_entry);
     
+    //Добавляем информацию о состоянии
+    struct ipt_entry_match *conntrack_match = NULL;
+    if(conditions.state)
+    {
+        //Выделяем память
+        size_t size = XT_ALIGN(sizeof(struct ipt_entry_match)) + XT_ALIGN(sizeof(struct xt_conntrack_mtinfo3));
+        conntrack_match = (struct ipt_entry_match *) calloc(1, size);
+        
+        //Заполняем название и размер
+        strncpy(conntrack_match->u.user.name, "conntrack", IPT_FUNCTION_MAXNAMELEN);
+        conntrack_match->u.match_size = size;
+        
+        //Заполняем поля структуры
+        ((struct xt_conntrack_mtinfo3 *)conntrack_match->data)->state_mask = conditions.state;
+        ((struct xt_conntrack_mtinfo3 *)conntrack_match->data)->match_flags = 0x2001;
+    }
+    
     //Заполняем target в зависимости от переданного значения
     struct ipt_entry_target* entry_target = NULL;
     if(conditions.action == string("DNAT") || conditions.action == string("SNAT"))
@@ -188,8 +205,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     }
     
     //Перевыделяем память
-    //TODO: А можно ли перенести заполнение вперед и избавиться от динамического выделения памяти?
-    long match_size = (entry_match ? entry_match->u.match_size : 0);
+    long match_size = (entry_match ? entry_match->u.match_size : 0) + (conntrack_match ? conntrack_match->u.match_size : 0);
     chain_entry = (struct ipt_entry *) realloc(chain_entry, sizeof(struct ipt_entry) + match_size + entry_target->u.target_size);
     
     //Добавляем target
@@ -199,7 +215,9 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     
     //Добавляем match
     if (entry_match)
-        memcpy(chain_entry->elems, entry_match, match_size);
+        memcpy(chain_entry->elems, entry_match, entry_match->u.match_size);
+    if (conntrack_match)
+        memcpy((char*)chain_entry->elems + (entry_match ? entry_match->u.match_size : 0), conntrack_match, conntrack_match->u.match_size);
     
     //Инициализируем таблицу
     xtc_handle *h = iptc_init(table.data());
@@ -210,6 +228,8 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         free(entry_target);
         if(entry_match)
             free(entry_match);
+        if(conntrack_match)
+            free(conntrack_match);
         return -1;
     }
     
@@ -221,11 +241,35 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         free(entry_target);
         if(entry_match)
             free(entry_match);
+        if(conntrack_match)
+            free(conntrack_match);
         iptc_free(h);
         return -1;
     }
     
     //TODO: Проверка, что в данную цепочку можно добавлять подобные правила
+    
+    ((char*)chain_entry)[92] = 0x04;
+    ((char*)chain_entry)[143] = 0x03;
+    ((char*)chain_entry)[294] = 0x08; //438 - 294
+    ((char*)chain_entry)[314] = 0x00;
+    ((char*)chain_entry)[315] = 0x00;
+    ((char*)chain_entry)[316] = 0x00;
+    ((char*)chain_entry)[317] = 0x00;
+    ((char*)chain_entry)[318] = 0x00;
+    ((char*)chain_entry)[319] = 0x00;
+    ((char*)chain_entry)[392] = 0xfffffffe;
+    ((char*)chain_entry)[393] = 0xffffffff;
+    ((char*)chain_entry)[394] = 0xffffffff;
+    ((char*)chain_entry)[395] = 0xffffffff;
+    
+    for(unsigned int k = 0; k < chain_entry->next_offset; k++)
+    {
+        printf("0x%.2x ", ((char*)chain_entry)[k]);
+        if((k + 1) % 8 == 0 && (k + 1) != chain_entry->next_offset)
+            printf("\n");
+    }
+    printf("\n\n");
     
     //Добавляем правило
     ipt_chainlabel labelit = {};
@@ -237,6 +281,8 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         free(entry_target);
         if(entry_match)
             free(entry_match);
+        if(conntrack_match)
+            free(conntrack_match);
         iptc_free(h);
         return -1;
     }
@@ -249,6 +295,8 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         free(entry_target);
         if(entry_match)
             free(entry_match);
+        if(conntrack_match)
+            free(conntrack_match);
         iptc_free(h);
         return -1;
     }
@@ -256,6 +304,8 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Освобождаем ресурсы
     if(entry_match)
         free(entry_match);
+    if(conntrack_match)
+        free(conntrack_match);
     free(entry_target);
     free(chain_entry);
     iptc_free(h);
@@ -279,6 +329,8 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
         case protocol::udp:
             size += XT_ALIGN(sizeof(struct ipt_udp));
             break;
+        default:
+            return NULL;
     }
     
     //Выделяем память
@@ -451,6 +503,14 @@ map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
     unsigned int j = 0;
     for(const ipt_entry *it = iptc_first_rule(chain.data(), h); it != NULL; it = iptc_next_rule(it, h), j++)
     {
+        /*for(unsigned int k = 0; k < it->next_offset; k++)
+        {
+            printf("0x%.2x ", ((char*)it)[k]);
+            if((k + 1) % 8 == 0 && (k + 1) != it->next_offset)
+                printf("\n");
+        }
+        printf("\n\n");*/
+        
         struct rule condition;
         
         if(it->ip.src.s_addr != 0)
@@ -508,7 +568,35 @@ map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
                     condition.dport.max = ((struct ipt_tcp*)match->data)->dpts[1];
                 }
                 else if(strcmp(match->u.user.name, "conntrack") == 0)
+                {
                     condition.state = ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask;
+                    
+                    /*const struct xt_conntrack_mtinfo3 *conn = (const struct xt_conntrack_mtinfo3 *)match->data;
+                    printf("origsrc_addr: 0x%.8x\n", conn->origsrc_addr.in.s_addr);
+                    printf("origsrc_mask: 0x%.8x\n", conn->origsrc_mask.in.s_addr);
+                    printf("origdst_addr: 0x%.8x\n", conn->origdst_addr.in.s_addr);
+                    printf("origdst_mask: 0x%.8x\n", conn->origdst_mask.in.s_addr);
+                    printf("replsrc_addr: 0x%.8x\n", conn->replsrc_addr.in.s_addr);
+                    printf("replsrc_mask: 0x%.8x\n", conn->replsrc_mask.in.s_addr);
+                    printf("repldst_addr: 0x%.8x\n", conn->repldst_addr.in.s_addr);
+                    printf("repldst_mask: 0x%.8x\n", conn->repldst_mask.in.s_addr);
+                    printf("expires_min: 0x%.8x\n", conn->expires_min);
+                    printf("expires_max: 0x%.8x\n", conn->expires_max);
+                    printf("l4proto: 0x%.4x\n", conn->l4proto);
+                    printf("origsrc_port: 0x%.4x\n", conn->origsrc_port);
+                    printf("origdst_port: 0x%.4x\n", conn->origdst_port);
+                    printf("replsrc_port: 0x%.4x\n", conn->replsrc_port);
+                    printf("repldst_port: 0x%.4x\n", conn->repldst_port);
+                    
+                    printf("match_flags: 0x%.4x\n", conn->match_flags);
+                    printf("invert_flags: 0x%.4x\n", conn->invert_flags);
+                    printf("state_mask: 0x%.4x\n", conn->state_mask);
+                    printf("status_mask: 0x%.4x\n", conn->status_mask);
+                    printf("origsrc_port_high: 0x%.4x\n", conn->origsrc_port_high);
+                    printf("origdst_port_high: 0x%.4x\n", conn->origdst_port_high);
+                    printf("replsrc_port_high: 0x%.4x\n", conn->replsrc_port_high);
+                    printf("repldst_port_high: 0x%.4x\n", conn->repldst_port_high);*/
+                }
                 
                 j += match->u.match_size;
             }
