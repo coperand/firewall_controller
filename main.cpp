@@ -8,7 +8,7 @@ using namespace std;
 int main()
 {
 	IpTc iptc;
-	/*struct rule conditions = {};
+	struct rule conditions = {};
 	conditions.src_ip = inet_addr("10.23.12.4");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
 	conditions.src_mask = inet_addr("255.255.255.255");
@@ -16,19 +16,19 @@ int main()
 	conditions.proto = protocol::udp;
 	//conditions.sport = {1025, 1025};
 	//conditions.dport = {1026, 1026};
-	conditions.action = string("DNAT");
-	conditions.action_params = string("192.168.1.1-192.168.1.10");
+	conditions.action = string("SNAT");
+	conditions.action_params = string("192.168.1.1-192.168.1.10:11");
 	
-	//iptc.add_rule(conditions, "nat", "PREROUTING", 0);
+	//iptc.add_rule(conditions, "nat", "POSTROUTING", 0);
 	//iptc.del_rule(conditions, "nat", "PREROUTING");
 	
-	iptc.print_rules("nat", "PREROUTING");*/
-	
-	auto container = iptc.print_rules("filter", "FORWARD");
+	auto container = iptc.print_rules("nat", "POSTROUTING");
 	printf("========================\n");
 	for(auto item : container)
 	{
 	    printf("Rule: %s\n", item.second.action.data());
+	    if(item.second.action_params.size() > 0)
+	        printf("Params: %s\n", item.second.action_params.data());
 	    
 	    struct in_addr ip = {};
 	    if(item.second.src_ip != 0)

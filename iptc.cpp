@@ -409,6 +409,26 @@ struct ip_nat_range IpTc::parse_range(string input)
     return range;
 }
 
+string IpTc::parse_range_reverse(struct ip_nat_range& range)
+{
+    string result;
+    
+    struct in_addr addr = {};
+    addr.s_addr = range.min_ip;
+    result += string(inet_ntoa(addr));
+    if(range.min_ip != range.max_ip)
+    {
+        addr.s_addr = range.max_ip;
+        result += string("-") + string(inet_ntoa(addr));
+    }
+    if(range.min.all != 0)
+        result += string(":") + to_string(htons(range.min.all));
+    if(range.max.all != 0 && range.min.all != range.max.all)
+        result += string("-") + to_string(htons(range.max.all));
+    
+    return result;
+}
+
 map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
 {
     struct xtc_handle *h = iptc_init(table.data());
@@ -454,6 +474,16 @@ map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
             printf("Inv flags: 0x%.2x\n", it->ip.invflags); // hz proto hz dst src hz out in
         
         condition.action = string(iptc_get_target(it, h));
+        if(condition.action == "DNAT" || condition.action == "SNAT")
+        {
+            //TODO: Обработка нескольких диапазонов (не только здесь)
+            
+            struct ipt_natinfo *info = (struct ipt_natinfo *)((char*)it + it->target_offset);
+            struct ip_nat_range range = {};
+            memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));
+            
+            condition.action_params = parse_range_reverse(range);
+        }
         
         if(it->target_offset)
         {
