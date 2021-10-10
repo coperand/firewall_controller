@@ -315,7 +315,24 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
 
 struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry, uint16_t inv_flags)
 {
-
+    //Заполняем тип протокола
+    switch(proto)
+    {
+        case protocol::icmp:
+            chain_entry->ip.proto = IPPROTO_ICMP;
+            break;
+        case protocol::tcp:
+            chain_entry->ip.proto = IPPROTO_TCP;
+            break;
+        case protocol::udp:
+            chain_entry->ip.proto = IPPROTO_UDP;
+            break;
+    }
+    
+    //Если протокол указан с инверсией, добавлять match не нужно
+    if(inv_flags & 0x40)
+        return NULL;
+    
     //Высчитываем размер
     size_t size = XT_ALIGN(sizeof(struct ipt_entry_match));
     switch(proto)
@@ -342,15 +359,12 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
     {
         case protocol::icmp:
             strncpy(match->u.user.name, "icmp", IPT_FUNCTION_MAXNAMELEN);
-            chain_entry->ip.proto = IPPROTO_ICMP;
             break;
         case protocol::tcp:
             strncpy(match->u.user.name, "tcp", IPT_FUNCTION_MAXNAMELEN);
-            chain_entry->ip.proto = IPPROTO_TCP;
             break;
         case protocol::udp:
             strncpy(match->u.user.name, "udp", IPT_FUNCTION_MAXNAMELEN);
-            chain_entry->ip.proto = IPPROTO_UDP;
             break;
     }
     

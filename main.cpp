@@ -9,9 +9,9 @@ int main()
 {
 	IpTc iptc;
 	struct rule conditions = {};
-	//conditions.src_ip = inet_addr("10.23.12.4");
+	conditions.src_ip = inet_addr("10.23.12.4");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
-	//conditions.src_mask = inet_addr("255.255.255.255");
+	conditions.src_mask = inet_addr("255.255.255.255");
 	//conditions.dst_mask = inet_addr("255.255.255.255");
 	//conditions.in_if = string("eth0");
 	//conditions.out_if = string("eth0");
@@ -21,7 +21,7 @@ int main()
 	//conditions.state = 0x03;
 	conditions.action = string("ACCEPT");
 	//conditions.action_params = string("192.168.1.1-192.168.1.10:11");
-	conditions.inv_flags = 0x40;
+	conditions.inv_flags = 0x48;
 	
 	iptc.add_rule(conditions, "filter", "FORWARD", 0);
 	//iptc.del_rule(conditions, "filter", "FORWARD");
