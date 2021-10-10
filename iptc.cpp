@@ -159,8 +159,6 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
 
 int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned int index)
 {
-    //TODO: Обработка флагов инверсии
-    
     //Выделяем память
     struct ipt_entry* chain_entry = (struct ipt_entry*) calloc(1, sizeof (struct ipt_entry));
     if(!chain_entry)
@@ -181,6 +179,9 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         chain_entry->ip.dmsk.s_addr = conditions.dst_mask;
     }
     
+    //Добавляем флаги инверсии
+    chain_entry->ip.invflags = conditions.inv_flags & 0x5B;
+    
     //Добавляем интерфейсы
     if(conditions.in_if.size())
         memcpy(chain_entry->ip.iniface, conditions.in_if.data(), conditions.in_if.size());
@@ -188,7 +189,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         memcpy(chain_entry->ip.outiface, conditions.out_if.data(), conditions.out_if.size());
     
     //Заполняем match в зависимости от протокола
-    struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, chain_entry);
+    struct ipt_entry_match *entry_match = get_osi4_match(conditions.proto, conditions.sport, conditions.dport, chain_entry, conditions.inv_flags);
     
     //Добавляем информацию о состоянии
     struct ipt_entry_match *conntrack_match = NULL;
@@ -206,6 +207,8 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         //Заполняем поля структуры
         ((struct xt_conntrack_mtinfo3 *)conntrack_match->data)->state_mask = conditions.state;
         ((struct xt_conntrack_mtinfo3 *)conntrack_match->data)->match_flags = 0x2001;
+        if(conditions.inv_flags & 0x04)
+            ((struct xt_conntrack_mtinfo3 *)conntrack_match->data)->invert_flags = 1;
     }
     
     //Заполняем target в зависимости от переданного значения
@@ -310,7 +313,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     return 0;
 }
 
-struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry)
+struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry, uint16_t inv_flags)
 {
 
     //Высчитываем размер
@@ -368,6 +371,12 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
             ((struct ipt_tcp*)match->data)->dpts[0] = dport.min;
             ((struct ipt_tcp*)match->data)->dpts[1] = dport.min;
         }
+        
+        //Добавляем флаги инверсии
+        if(inv_flags & 0x20)
+            ((struct ipt_tcp*)match->data)->invflags |= 0x01;
+        if(inv_flags & 0x80)
+            ((struct ipt_tcp*)match->data)->invflags |= 0x02;
     }
     else if(proto == protocol::udp)
     {
@@ -383,6 +392,12 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
             ((struct ipt_udp*)match->data)->dpts[0] = dport.min;
             ((struct ipt_udp*)match->data)->dpts[1] = dport.max;
         }
+        
+        //Добавляем флаги инверсии
+        if(inv_flags & 0x20)
+            ((struct ipt_udp*)match->data)->invflags |= 0x01;
+        if(inv_flags & 0x80)
+            ((struct ipt_udp*)match->data)->invflags |= 0x02;
     }
     
     return match;

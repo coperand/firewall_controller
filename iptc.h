@@ -65,7 +65,7 @@ public:
     int change_policy(std::string table, std::string chain, uint8_t policy);
     std::pair<std::map<unsigned int, struct rule>, uint8_t> print_rules(std::string table, std::string chain);
 private:
-    struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
+    struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry, uint16_t inv_flags);
     struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);
     struct ip_nat_range parse_range(std::string input);
     std::string parse_range_reverse(struct ip_nat_range& range);

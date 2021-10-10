@@ -188,6 +188,16 @@ fcFFActionParams OBJECT-TYPE
 
 fcFFInverseFlags OBJECT-TYPE
     SYNTAX     BIT STRING
+                        {
+                         dport(0),
+                         proto(1),
+                         sport(2),
+                         daddr(3),
+                         saddr(4),
+                         state(5),
+                         outif(6),
+                         inif(7)
+                        }
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION

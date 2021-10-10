@@ -9,22 +9,25 @@ int main()
 {
 	IpTc iptc;
 	struct rule conditions = {};
-	conditions.src_ip = inet_addr("10.23.12.4");
+	//conditions.src_ip = inet_addr("10.23.12.4");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
-	conditions.src_mask = inet_addr("255.255.255.255");
+	//conditions.src_mask = inet_addr("255.255.255.255");
 	//conditions.dst_mask = inet_addr("255.255.255.255");
-	conditions.proto = protocol::tcp;
-	conditions.sport = {1025, 1025};
+	//conditions.in_if = string("eth0");
+	//conditions.out_if = string("eth0");
+	conditions.proto = protocol::udp;
+	//conditions.sport = {1025, 1025};
 	//conditions.dport = {1026, 1026};
-	conditions.state = 0x03;
+	//conditions.state = 0x03;
 	conditions.action = string("ACCEPT");
 	//conditions.action_params = string("192.168.1.1-192.168.1.10:11");
+	conditions.inv_flags = 0x40;
 	
-	//iptc.add_rule(conditions, "filter", "FORWARD", 0);
+	iptc.add_rule(conditions, "filter", "FORWARD", 0);
 	//iptc.del_rule(conditions, "filter", "FORWARD");
 	//iptc.change_policy("filter", "FORWARD", 0);
 	
-	auto print_result = iptc.print_rules("filter", "FORWARD");
+	/*auto print_result = iptc.print_rules("filter", "FORWARD");
 	auto container = print_result.first;
 	printf("==========================\n");
 	switch(print_result.second)
@@ -116,7 +119,7 @@ int main()
 	    printf("InvFlags: 0x%.2x\n", item.second.inv_flags);
 	    
 	    printf("\n");
-	}
+	}*/
 	
 	//================================================
 	
