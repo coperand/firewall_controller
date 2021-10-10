@@ -7,6 +7,7 @@
 #include <libiptc/libiptc.h>
 #include <linux/netfilter/xt_conntrack.h>
 #include <map>
+#include <tuple>
 
 #include "structs.h"
 
@@ -62,7 +63,7 @@ public:
     int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
     int del_rule(struct rule conditions, std::string table, std::string chain);
     int change_policy(std::string table, std::string chain, uint8_t policy);
-    std::map<unsigned int, struct rule> print_rules(std::string table, std::string chain);
+    std::pair<std::map<unsigned int, struct rule>, uint8_t> print_rules(std::string table, std::string chain);
 private:
     struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);
     struct ipt_entry_target* get_nat_target(std::string action, std::string action_params);

@@ -529,7 +529,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     return 0;
 }
 
-map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
+pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, string chain)
 {
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
@@ -543,9 +543,19 @@ map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
         return {};
     }
     
-    //TODO: Вернуть число, характеризующее Policy
-    //struct ipt_counters counters;
-    //printf("Policy: %s\n\n", iptc_get_policy(chain.data(), &counters, h));
+    //Получаем политику по умолчанию
+    struct ipt_counters counters;
+    uint8_t policy = 0;
+    string policy_str = string(iptc_get_policy(chain.data(), &counters, h));
+    if(policy_str == string("DROP"))
+        policy = 0;
+    else if(policy_str == string("ACCEPT"))
+        policy = 1;
+    else
+    {
+        printf("Failed to interpret %s policy\n", policy_str.data());
+        return {};
+    }
     
     map<unsigned int, struct rule> rules;
     unsigned int j = 0;
@@ -618,5 +628,5 @@ map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
     }
     
     iptc_free(h);
-    return rules;
+    return {rules, policy};
 }

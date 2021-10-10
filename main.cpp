@@ -22,11 +22,23 @@ int main()
 	
 	//iptc.add_rule(conditions, "filter", "FORWARD", 0);
 	//iptc.del_rule(conditions, "filter", "FORWARD");
+	//iptc.change_policy("filter", "FORWARD", 0);
 	
-	iptc.change_policy("filter", "FORWARD", 1);
-	
-	/*auto container = iptc.print_rules("filter", "FORWARD");
-	printf("========================\n");
+	auto print_result = iptc.print_rules("filter", "FORWARD");
+	auto container = print_result.first;
+	printf("==========================\n");
+	switch(print_result.second)
+        {
+            case 0:
+                printf("Policy: DROP\n");
+                break;
+            case 1:
+                printf("Policy: ACCEPT\n");
+                break;
+            default:
+                printf("Unknown policy code - %u\n", print_result.second);
+        }
+        printf("==========================\n");
 	for(auto item : container)
 	{
 	    printf("Rule: %s\n", item.second.action.data());
@@ -102,7 +114,7 @@ int main()
 	    }
 	    
 	    printf("\n");
-	}*/
+	}
 	
 	//================================================
 	
