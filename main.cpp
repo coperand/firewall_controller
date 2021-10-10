@@ -113,6 +113,8 @@ int main()
 	        printf("\n");
 	    }
 	    
+	    printf("InvFlags: 0x%.2x\n", item.second.inv_flags);
+	    
 	    printf("\n");
 	}
 	

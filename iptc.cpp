@@ -580,8 +580,8 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
         if(it->ip.proto != 0)
             if(it->ip.proto == 1 || it->ip.proto == 6 || it->ip.proto == 17)
                 condition.proto = static_cast<protocol>(it->ip.proto);
-        if(it->ip.invflags != 0)                            //128  64   32 16  8   4   2   1
-            printf("Inv flags: 0x%.2x\n", it->ip.invflags); // hz proto hz dst src hz out in
+        condition.inv_flags = it->ip.invflags & 0x5B;   //128  64   32 16  8   4   2   1
+                                                        // hz proto hz dst src hz out in
         
         condition.action = string(iptc_get_target(it, h));
         if(condition.action == "DNAT" || condition.action == "SNAT")
@@ -608,6 +608,11 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
                     
                     condition.dport.min = ((struct ipt_udp*)match->data)->dpts[0];
                     condition.dport.max = ((struct ipt_udp*)match->data)->dpts[1];
+                    
+                    if(((struct ipt_udp*)match->data)->invflags & 0x01) //  2   1
+                        condition.inv_flags |= 0x20;                    // dst src
+                    if(((struct ipt_udp*)match->data)->invflags & 0x02)
+                        condition.inv_flags |= 0x80;
                 }
                 else if(strcmp(match->u.user.name, "tcp") == 0)
                 {
@@ -616,9 +621,19 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
                     
                     condition.dport.min = ((struct ipt_tcp*)match->data)->dpts[0];
                     condition.dport.max = ((struct ipt_tcp*)match->data)->dpts[1];
+                    
+                    if(((struct ipt_tcp*)match->data)->invflags & 0x01) //  2   1
+                        condition.inv_flags |= 0x20;                    // dst src
+                    if(((struct ipt_tcp*)match->data)->invflags & 0x02)
+                        condition.inv_flags |= 0x80;
                 }
                 else if(strcmp(match->u.user.name, "conntrack") == 0)
+                {
                     condition.state = ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask;
+                    
+                    if(((const struct xt_conntrack_mtinfo3 *)match->data)->invert_flags == 1) //1 - invert
+                        condition.inv_flags |= 0x04;
+                }
                 
                 j += match->u.match_size;
             }
