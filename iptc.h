@@ -61,6 +61,7 @@ public:
     
     int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
     int del_rule(struct rule conditions, std::string table, std::string chain);
+    int change_policy(std::string table, std::string chain, uint8_t policy);
     std::map<unsigned int, struct rule> print_rules(std::string table, std::string chain);
 private:
     struct ipt_entry_match* get_osi4_match(protocol proto, struct range sport, struct range dport, struct ipt_entry* chain_entry);

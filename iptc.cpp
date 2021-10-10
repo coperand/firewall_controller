@@ -478,6 +478,57 @@ string IpTc::parse_range_reverse(struct ip_nat_range& range)
     return result;
 }
 
+int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
+{
+    struct xtc_handle *h = iptc_init(table.data());
+    if (!h)
+    {
+        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        return -1;
+    }
+    
+    if(!iptc_is_chain(chain.data(), h))
+    {
+        printf("No %s chain found\n", chain.data());
+        iptc_free(h);
+        return -1;
+    }
+    
+    string policy_str;
+    switch(policy)
+    {
+        case 0:
+            policy_str = "DROP";
+            break;
+        case 1:
+            policy_str = "ACCEPT";
+            break;
+        default:
+            printf("Unknown policy code - %u\n", policy);
+            iptc_free(h);
+            return -1;
+    }
+    
+    struct ipt_counters counters;
+    if (!iptc_set_policy(chain.data(), policy_str.data(), &counters, h))
+    {
+        printf("Failed to set %s policy to %s chain: %s\n", policy_str.data(), chain.data(), iptc_strerror(errno));
+        iptc_free(h);
+        return -1;
+    }
+    
+    //Применяем внесенные изменения
+    if (!iptc_commit(h))
+    {
+        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        iptc_free(h);
+        return -1;
+    }
+    
+    iptc_free(h);
+    return 0;
+}
+
 map<unsigned int, struct rule> IpTc::print_rules(string table, string chain)
 {
     struct xtc_handle *h = iptc_init(table.data());

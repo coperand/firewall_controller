@@ -7,7 +7,7 @@ using namespace std;
 
 int main()
 {
-	/*IpTc iptc;
+	IpTc iptc;
 	struct rule conditions = {};
 	conditions.src_ip = inet_addr("10.23.12.4");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
@@ -23,7 +23,9 @@ int main()
 	//iptc.add_rule(conditions, "filter", "FORWARD", 0);
 	//iptc.del_rule(conditions, "filter", "FORWARD");
 	
-	auto container = iptc.print_rules("filter", "FORWARD");
+	iptc.change_policy("filter", "FORWARD", 1);
+	
+	/*auto container = iptc.print_rules("filter", "FORWARD");
 	printf("========================\n");
 	for(auto item : container)
 	{
@@ -104,7 +106,7 @@ int main()
 	
 	//================================================
 	
-	oid filter_forward_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
+	/*oid filter_forward_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
 	//oid filter_input_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 2};
 	SnmpHandler snmp1(filter_forward_oid, sizeof(filter_forward_oid), "filterForwardTable");
 	//SnmpHandler snmp2(filter_input_oid, sizeof(filter_input_oid), "filterInputTable");
@@ -113,5 +115,5 @@ int main()
 	{
 	    while(agent_check_and_process(0));
 	    usleep(500);
-	}
+	}*/
 }
