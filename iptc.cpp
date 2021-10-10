@@ -37,6 +37,8 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
         found = false;
         for (const struct ipt_entry* e = iptc_first_rule(chain.data(), h); e; e = iptc_next_rule(e, h), i++)
         {
+            if((e->ip.invflags & 0x5B) != (conditions.inv_flags & 0x5B))
+                continue;
             if (conditions.state != 0)
             {
                 bool match_found = false;
@@ -48,7 +50,7 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                     if(strcmp(match->u.user.name, "conntrack") != 0)
                         continue;
                     
-                    if( ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask != conditions.state )
+                    if( ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask != conditions.state  || ((const struct xt_conntrack_mtinfo3 *)match->data)->invert_flags != (conditions.inv_flags & 0x04) )
                         continue;
                     
                     match_found = true;
@@ -80,12 +82,18 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                         
                         if(conditions.sport.min != 0 || conditions.sport.max != 0)
                         {
+                            if( (((struct ipt_tcp *)match->data)->invflags & 0x01) != (conditions.inv_flags & 0x20) )
+                                continue;
+                            
                             if (conditions.sport.min != ((proto == 6) ? ((struct ipt_tcp *)match->data)->spts[0] : ((struct ipt_udp *)match->data)->spts[0]) ||
                                 conditions.sport.max != ((proto == 6) ? ((struct ipt_tcp *)match->data)->spts[1] : ((struct ipt_udp *)match->data)->spts[1]))
                                continue;
                         }
                         if(conditions.dport.min != 0 || conditions.dport.max != 0)
                         {
+                            if( ((((struct ipt_tcp *)match->data)->invflags >> 1) & 0x01) != (conditions.inv_flags & 0x80) )
+                                continue;
+                            
                             if (conditions.dport.min != ((proto == 6) ? ((struct ipt_tcp *)match->data)->dpts[0] : ((struct ipt_udp *)match->data)->dpts[0]) ||
                                 conditions.dport.max != ((proto == 6) ? ((struct ipt_tcp *)match->data)->dpts[1] : ((struct ipt_udp *)match->data)->dpts[1]))
                                 continue;
