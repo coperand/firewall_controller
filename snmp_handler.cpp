@@ -4,6 +4,7 @@ using namespace std;
 
 map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, "accept", "test", 1}},
                                             {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, "DROP", "qwer", 0}}};
+uint8_t policy = 1;
 map<unsigned int, struct rule>::iterator SnmpHandler::it = {};
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name)
@@ -15,6 +16,7 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     init_snmp("Graduation_snmp");
     
     init_table(table_oid, oid_len, table_name);
+    init_policy(table_oid, oid_len, table_name);
 }
 
 SnmpHandler::~SnmpHandler()
@@ -86,6 +88,12 @@ void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_
     iinfo->table_reginfo = table_info;
     
     netsnmp_register_table_iterator(my_handler, iinfo);
+}
+
+void SnmpHandler::init_policy(oid* table_oid, unsigned int oid_len, string table_name)
+{
+    table_oid[oid_len / sizeof(oid) - 1] += 1;
+    netsnmp_register_scalar( netsnmp_create_handler_registration((table_name + string("Policy")).data(), policy_request_handler, table_oid, oid_len / sizeof(oid), HANDLER_CAN_RWRITE) );
 }
 
 int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
@@ -498,6 +506,36 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
         }
     }
     
+    return SNMP_ERR_NOERROR;
+}
+
+int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+{
+    switch(reqinfo->mode)
+    {
+        case MODE_GET:
+        {
+            snmp_set_var_typed_value(requests->requestvb, ASN_INTEGER, &policy, sizeof(policy));
+            break;
+        }
+
+        case MODE_SET_RESERVE2:
+        {
+            if (requests->requestvb->type != ASN_INTEGER)
+                netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_WRONGTYPE);
+            
+            if(*requests->requestvb->val.integer != 0 && *requests->requestvb->val.integer != 1)
+                netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_INCONSISTENTVALUE);
+            break;
+        }
+
+        case MODE_SET_ACTION:
+        {
+            policy = requests->requestvb->val.string[0] & 0x000000FF;
+            break;
+        }
+    }
+
     return SNMP_ERR_NOERROR;
 }
 
