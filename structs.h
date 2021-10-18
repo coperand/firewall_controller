@@ -42,12 +42,4 @@ struct rule
     std::string action_params;
     //Флаги инверсии (побитово)
     uint16_t inv_flags = 0;
-    
-    bool validate(struct rule entry)
-    {
-        //TODO: Валидация экземпляра структуры
-        return true;
-    }
-    
-    //TODO: Подсчет хеша
 };

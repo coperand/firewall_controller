@@ -2,13 +2,21 @@
 
 using namespace std;
 
-map<unsigned int, struct rule> SnmpHandler::container = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, "accept", "test", 0x01}},
-                                            {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, "DROP", "qwer", 0x80}}};
 uint8_t policy = 1;
-map<unsigned int, struct rule>::iterator SnmpHandler::it = {};
 
-SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name)
+map<unsigned int, struct rule>* SnmpHandler::container = NULL;
+map<unsigned int, struct rule>::iterator* SnmpHandler::it = NULL;
+int (*SnmpHandler::add_callback)(unsigned int index) = NULL;
+int (*SnmpHandler::del_callback)(unsigned int index) = NULL;
+
+SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
+                                int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index))
 {
+    this->container = container;
+    this->it = it;
+    this->add_callback = add_callback;
+    this->del_callback = del_callback;
+    
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
     SOCK_STARTUP;
     
@@ -26,17 +34,17 @@ SnmpHandler::~SnmpHandler()
 
 netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
-    if(!container.size())
+    if(!container->size())
         return NULL;
     
-    it = container.begin();
+    *it = container->begin();
     
-    *my_loop_context = &it;
-    *my_data_context = &it->second;
+    *my_loop_context = it;
+    *my_data_context = &(*it)->second;
 
     netsnmp_variable_list *vptr = put_index_data;
     
-    snmp_set_var_value(vptr, &it->first, sizeof(it->first));
+    snmp_set_var_value(vptr, &(*it)->first, sizeof((*it)->first));
     vptr = vptr->next_variable;
 
     return put_index_data;
@@ -44,15 +52,15 @@ netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context,
 
 netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
-    if(++it == container.end())
+    if(++(*it) == container->end())
         return NULL;
     
-    *my_loop_context = &it;
-    *my_data_context = &it->second;
+    *my_loop_context = it;
+    *my_data_context = &(*it)->second;
 
     netsnmp_variable_list *vptr = put_index_data;
     
-    snmp_set_var_value(vptr, &it->first, sizeof(it->first));
+    snmp_set_var_value(vptr, &(*it)->first, sizeof((*it)->first));
     vptr = vptr->next_variable;
 
     return put_index_data;

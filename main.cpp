@@ -2,14 +2,15 @@
 
 #include "iptc.h"
 #include "snmp_handler.h"
+#include "core.h"
 
 using namespace std;
 
 int main()
 {
-	IpTc iptc;
+	/*IpTc iptc;
 	struct rule conditions = {};
-	conditions.src_ip = inet_addr("10.23.12.4");
+	conditions.src_ip = inet_addr("10.23.12.5");
 	//conditions.dst_ip = inet_addr("10.23.12.25");
 	conditions.src_mask = inet_addr("255.255.255.255");
 	//conditions.dst_mask = inet_addr("255.255.255.255");
@@ -23,7 +24,7 @@ int main()
 	//conditions.action_params = string("192.168.1.1-192.168.1.10:11");
 	conditions.inv_flags = 0x48;
 	
-	iptc.add_rule(conditions, "filter", "FORWARD", 0);
+	iptc.add_rule(conditions, "filter", "FORWARD", 1);*/
 	//iptc.del_rule(conditions, "filter", "FORWARD");
 	//iptc.change_policy("filter", "FORWARD", 0);
 	
@@ -133,4 +134,9 @@ int main()
 	    while(agent_check_and_process(0));
 	    usleep(500);
 	}*/
+	
+	oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1, 1};
+	Core core(3, table_oid, sizeof(table_oid));
+	
+	core.cycle();
 }

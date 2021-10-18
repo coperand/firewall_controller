@@ -277,8 +277,6 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
         return -1;
     }
     
-    //TODO: Проверка, что в данную цепочку можно добавлять подобные правила
-    
     //Добавляем правило
     ipt_chainlabel labelit = {};
     strncpy(labelit, chain.data(), chain.size());
