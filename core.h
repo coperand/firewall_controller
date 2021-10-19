@@ -26,4 +26,5 @@ private:
     
     static std::map<unsigned int, struct rule> rules;
     static std::map<unsigned int, struct rule>::iterator rules_it;
+    static uint8_t policy;
 };

@@ -2,20 +2,20 @@
 
 using namespace std;
 
-uint8_t policy = 1;
-
 map<unsigned int, struct rule>* SnmpHandler::container = NULL;
 map<unsigned int, struct rule>::iterator* SnmpHandler::it = NULL;
 int (*SnmpHandler::add_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::del_callback)(unsigned int index) = NULL;
+uint8_t* SnmpHandler::policy = NULL;
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
-                                int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index))
+                                int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index), uint8_t* policy)
 {
     this->container = container;
     this->it = it;
     this->add_callback = add_callback;
     this->del_callback = del_callback;
+    this->policy = policy;
     
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
     SOCK_STARTUP;
@@ -523,7 +523,7 @@ int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_ha
     {
         case MODE_GET:
         {
-            snmp_set_var_typed_value(requests->requestvb, ASN_INTEGER, &policy, sizeof(policy));
+            snmp_set_var_typed_value(requests->requestvb, ASN_INTEGER, policy, sizeof(*policy));
             break;
         }
 
@@ -539,7 +539,8 @@ int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_ha
 
         case MODE_SET_ACTION:
         {
-            policy = requests->requestvb->val.string[0] & 0x000000FF;
+            //TODO: Модификация через callback
+            //policy = requests->requestvb->val.string[0] & 0x000000FF;
             break;
         }
     }

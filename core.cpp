@@ -3,11 +3,11 @@
 using namespace std;
 
 IpTc* Core::iptc_pointer = NULL;
-map<unsigned int, struct rule> Core::rules = {{1, {inet_addr("192.168.2.12"), inet_addr("131.121.2.3"), inet_addr("255.255.255.252"), inet_addr("255.255.255.0"), "eth0", "eth1", protocol::tcp, {1, 15}, {134, 32412}, 1, "accept", "test", 0x01}},
-                                                {2, {inet_addr("192.163.21.1"), inet_addr("114.21.21.2"), inet_addr("255.255.0.0"), inet_addr("255.255.252.0"), "ens5f5", "exr131", protocol::udp, {3, 21}, {321, 13142}, 2, "DROP", "qwer", 0x80}}};
+map<unsigned int, struct rule> Core::rules = {};
 map<unsigned int, struct rule>::iterator Core::rules_it = Core::rules.begin();
+uint8_t Core::policy = 1;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule}, iptc_timer{}, refresh_timeout{refresh_timeout}
+Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, &policy}, iptc_timer{}, refresh_timeout{refresh_timeout}
 {
     iptc_pointer = &iptc;
     rules_it = rules.begin();
@@ -48,6 +48,7 @@ void Core::cycle()
             from_kernel = iptc.print_rules("filter", "FORWARD");
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)
                 rules[250 + i] = from_kernel.first[i / 2];
+            policy = from_kernel.second;
             
             from_kernel = iptc.print_rules("nat", "POSTROUTING");
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)

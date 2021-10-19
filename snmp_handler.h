@@ -18,12 +18,13 @@ class SnmpHandler
 public:
     SnmpHandler() = delete;
     SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name, std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it,
-                                    int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index));
+                                    int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index), uint8_t* policy);
     ~SnmpHandler();
 private:
     //Переменные для работы с контейнером
     static std::map<unsigned int, struct rule>* container;
     static std::map<unsigned int, struct rule>::iterator* it;
+    static uint8_t* policy;
     
     static int (*add_callback)(unsigned int index);
     static int (*del_callback)(unsigned int index);
