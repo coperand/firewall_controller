@@ -41,9 +41,8 @@ private:
     
     //Вспомогательные функции, используемые при обработке запросов
     template <typename T>
-    static void get_integer(T* data, int type, netsnmp_request_info *request);
-    static void get_ip(in_addr_t* data, int type, netsnmp_request_info *request);
-    static void get_char(std::string *data, netsnmp_request_info *request);
+    static void get_integer(T* data, int type, netsnmp_request_info *request, netsnmp_agent_request_info *reqinfo);
+    static void get_char(std::string *data, netsnmp_request_info *request, netsnmp_agent_request_info *reqinfo);
     static int check_val(int type, int waiting_type, void *val, std::vector<int> possible_values);
 };
 

@@ -593,8 +593,8 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
     }
     
     map<unsigned int, struct rule> rules;
-    unsigned int j = 0;
-    for(const ipt_entry *it = iptc_first_rule(chain.data(), h); it != NULL; it = iptc_next_rule(it, h), j++)
+    unsigned int index = 1;
+    for(const ipt_entry *it = iptc_first_rule(chain.data(), h); it != NULL; it = iptc_next_rule(it, h), index++)
     {
         struct rule condition;
         
@@ -626,6 +626,11 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
             struct ipt_natinfo *info = (struct ipt_natinfo *)((char*)it + it->target_offset);
             struct ip_nat_range range = {};
             memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));
+            
+            //Костыль?
+            struct ip_nat_range temp_range = {};
+            memcpy(&temp_range, &info->mr.range[1], sizeof(struct ip_nat_range));
+            range.max_ip = temp_range.min_ip;
             
             condition.action_params = parse_range_reverse(range);
         }
@@ -671,10 +676,10 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
                 }
                 
                 j += match->u.match_size;
-            }
+             }
         }
         
-        rules[j] = condition;
+        rules[index] = condition;
     }
     
     iptc_free(h);

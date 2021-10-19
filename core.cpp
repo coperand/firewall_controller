@@ -37,7 +37,19 @@ void Core::cycle()
     {
         if(chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - iptc_timer).count() > refresh_timeout)
         {
-            //TODO: Опрос таблиц
+            rules.clear();
+            
+            //TODO: Поменять на свои цепочки и добавить их создание
+            
+            auto from_kernel = iptc.print_rules("nat", "PREROUTING");
+            for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)
+                rules[i] = from_kernel.first[i / 2];
+            
+            //auto received_rules = iptc.iptc.print_rules("filter", "FORWARD");
+            //auto received_rules = iptc.iptc.print_rules("nat", "POSTROUTING");
+            
+            rules_it = rules.end();
+            
             
             iptc_timer = chrono::steady_clock::now();
         }

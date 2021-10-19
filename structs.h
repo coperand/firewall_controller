@@ -41,5 +41,5 @@ struct rule
     std::string action;
     std::string action_params;
     //Флаги инверсии (побитово)
-    uint16_t inv_flags = 0;
+    uint16_t inv_flags = 0x1000;
 };

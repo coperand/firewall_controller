@@ -119,7 +119,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
         
         switch (reqinfo->mode) {
         case MODE_GET:
-            data_context =  netsnmp_extract_iterator_context(request);
+            data_context = netsnmp_extract_iterator_context(request);
             if (data_context == NULL)
             {
                 netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
@@ -150,51 +150,51 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                 switch(table_info->colnum)
                 {
                     case COLUMN_SRCADDR:
-                        get_ip(&reinterpret_cast<struct rule*>(data_context)->src_ip, ASN_IPADDRESS, request);
+                        get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->src_ip, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
                     case COLUMN_SRCMASK:
-                        get_ip(&reinterpret_cast<struct rule*>(data_context)->src_mask, ASN_IPADDRESS, request);
+                        get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->src_mask, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
                     case COLUMN_DSTADDR:
-                        get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_ip, ASN_IPADDRESS, request);
+                        get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->dst_ip, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
                     case COLUMN_DSTMASK:
-                        get_ip(&reinterpret_cast<struct rule*>(data_context)->dst_mask, ASN_IPADDRESS, request);
+                        get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->dst_mask, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
                     case COLUMN_INIFACE:
-                        get_char(&reinterpret_cast<struct rule*>(data_context)->in_if, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->in_if, request, reqinfo);
                         break;
                     
                     case COLUMN_OUTIFACE:
-                        get_char(&reinterpret_cast<struct rule*>(data_context)->out_if, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->out_if, request, reqinfo);
                         break;
                     
                     case COLUMN_PROTO:
-                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->proto), ASN_INTEGER, request);
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->proto), ASN_INTEGER, request, reqinfo);
                         break;
                     
                     case COLUMN_SRCPORTMIN:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.min), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.min), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
                     case COLUMN_SRCPORTMAX:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.max), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.max), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
                     case COLUMN_DSTPORTMIN:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.min), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.min), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
                     case COLUMN_DSTPORTMAX:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.max), ASN_UNSIGNED, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.max), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
                     case COLUMN_STATE:
-                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request);
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request, reqinfo);
                         break;
                     
                     case COLUMN_ACTION:
@@ -225,11 +225,11 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         break;
                     }
                     case COLUMN_ACTIONPARAMS:
-                        get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request);
+                        get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request, reqinfo);
                         break;
                     
                     case COLUMN_INVERSEFLAGS:
-                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->inv_flags), ASN_OCTET_STR, request);
+                        get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->inv_flags), ASN_OCTET_STR, request, reqinfo);
                         break;
                     
                     default:
@@ -548,26 +548,24 @@ int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_ha
 }
 
 template <typename T>
-void SnmpHandler::get_integer(T* data, int type, netsnmp_request_info *request)
+void SnmpHandler::get_integer(T* data, int type, netsnmp_request_info *request, netsnmp_agent_request_info *reqinfo)
 {
-    if(*data == static_cast<T>(~0))
+    if(*data == 0)
+    {
+        netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
         return;
+    }
     
     snmp_set_var_typed_value(request->requestvb, type, data, sizeof(T));
 }
 
-void SnmpHandler::get_ip(in_addr_t* data, int type, netsnmp_request_info *request)
-{
-    if(*data == 0)
-        return;
-    
-    snmp_set_var_typed_value(request->requestvb, type, data, sizeof(in_addr_t));
-}
-
-void SnmpHandler::get_char(string *data, netsnmp_request_info *request)
+void SnmpHandler::get_char(string *data, netsnmp_request_info *request, netsnmp_agent_request_info *reqinfo)
 {
     if(data->size() == 0)
+    {
+        netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
         return;
+    }
     
     snmp_set_var_typed_value(request->requestvb, ASN_OCTET_STR, data->data(), data->size());
 }
