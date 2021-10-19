@@ -45,12 +45,15 @@ void Core::cycle()
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)
                 rules[i] = from_kernel.first[i / 2];
             
-            //auto received_rules = iptc.iptc.print_rules("filter", "FORWARD");
-            //auto received_rules = iptc.iptc.print_rules("nat", "POSTROUTING");
+            from_kernel = iptc.print_rules("filter", "FORWARD");
+            for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)
+                rules[250 + i] = from_kernel.first[i / 2];
+            
+            from_kernel = iptc.print_rules("nat", "POSTROUTING");
+            for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size; i += 2)
+                rules[750 + i] = from_kernel.first[i / 2];
             
             rules_it = rules.end();
-            
-            
             iptc_timer = chrono::steady_clock::now();
         }
         

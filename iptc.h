@@ -38,8 +38,8 @@ union ip_conntrack_manip_proto
 
 struct ip_nat_range
 {
-    u_int32_t min_ip, max_ip;
     unsigned int flags;
+    u_int32_t min_ip, max_ip;
     union ip_conntrack_manip_proto min, max;
 };
 

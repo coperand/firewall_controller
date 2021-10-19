@@ -619,7 +619,7 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
                                                         // hz proto hz dst src hz out in
         
         condition.action = string(iptc_get_target(it, h));
-        if(condition.action == "DNAT" || condition.action == "SNAT")
+        if(condition.action == "DNAT")
         {
             //TODO: Обработка нескольких диапазонов (не только здесь)
             
@@ -628,9 +628,23 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
             memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));
             
             //Костыль?
-            struct ip_nat_range temp_range = {};
-            memcpy(&temp_range, &info->mr.range[1], sizeof(struct ip_nat_range));
-            range.max_ip = temp_range.min_ip;
+            if(range.min_ip == 0x00 && range.max_ip == 0x00)
+            {
+                struct ip_nat_range temp_range = {};
+                memcpy(&temp_range, &info->mr.range[1], sizeof(struct ip_nat_range));
+                range.max_ip = temp_range.flags;
+                range.min_ip = range.flags;
+            }
+            
+            condition.action_params = parse_range_reverse(range);
+        }
+        else if(condition.action == "SNAT")
+        {
+            //TODO: Обработка нескольких диапазонов (не только здесь)
+            
+            struct ipt_natinfo *info = (struct ipt_natinfo *)((char*)it + it->target_offset);
+            struct ip_nat_range range = {};
+            memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));
             
             condition.action_params = parse_range_reverse(range);
         }
