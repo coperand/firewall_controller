@@ -68,7 +68,10 @@ netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, 
 
 void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int column)
 {
-    return NULL;
+    if( (*index_data->val.integer) % 2 == 0 )
+        return NULL;
+    
+    return &(*container)[(*index_data->val.integer)];
 }
 
 void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_name)
@@ -127,9 +130,9 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
             }
             break;
 
-        case MODE_SET_RESERVE1:
+        case MODE_SET_RESERVE2:
         case MODE_SET_ACTION:
-            data_context =  netsnmp_extract_iterator_context(request);
+            data_context = netsnmp_extract_iterator_context(request);
             if (!data_context)
             {
                 data_context = create_data_context(table_info->indexes, table_info->colnum);
@@ -503,7 +506,12 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     }
                     case COLUMN_COMMAND:
                     {
-                        //TODO: Команда
+                        if(request->requestvb->val.string[0] == 0x00)
+                            add_callback(*(table_info->indexes->val.integer));
+                        else if(request->requestvb->val.string[0] == 0x01)
+                            del_callback(*(table_info->indexes->val.integer));
+                        else
+                            netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
                         
                         break;
                     }

@@ -11,8 +11,6 @@ Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : ipt
 {
     iptc_pointer = &iptc;
     rules_it = rules.begin();
-    
-    //TODO: Не забыть про политику
 }
 
 Core::~Core()
@@ -22,11 +20,13 @@ Core::~Core()
 
 int Core::add_rule(unsigned int index)
 {
+    printf("Add %u\n", index);
     return 0;
 }
 
 int Core::del_rule(unsigned int index)
 {
+    printf("Del %u\n", index);
     return 0;
 }
 
