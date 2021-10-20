@@ -17,13 +17,12 @@ public:
     void cycle();
 private:
     IpTc iptc;
-    static IpTc* iptc_pointer;
-    
     SnmpHandler snmp;
     
     std::chrono::time_point<std::chrono::steady_clock> iptc_timer;
     uint8_t refresh_timeout;
     
+    static Core* instance_pointer;
     static std::map<unsigned int, struct rule> rules;
     static std::map<unsigned int, struct rule>::iterator rules_it;
     static uint8_t policy;
