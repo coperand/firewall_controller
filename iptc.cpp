@@ -119,7 +119,7 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                 continue;
             if (conditions.action.size() && conditions.action != string(iptc_get_target(e, h)))
                     continue;
-            if (conditions.action == string("DNAT") || conditions.action == string("SNAT"))
+            if (conditions.action == string("SNAT"))
             {
                 struct ipt_entry_target *t = (struct ipt_entry_target *) ((uint8_t*)e + e->target_offset);
                 struct ip_nat_multi_range *mr = (struct ip_nat_multi_range *) ((void *) &t->data);
@@ -135,6 +135,33 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                        || r->max_ip != range.max_ip
                        || r->min.all != range.min.all
                        || r->max.all != range.max.all)
+                    continue;
+            }
+            if (conditions.action == string("DNAT"))
+            {
+                struct ipt_entry_target *t = (struct ipt_entry_target *) ((uint8_t*)e + e->target_offset);
+                struct ip_nat_multi_range *mr = (struct ip_nat_multi_range *) ((void *) &t->data);
+
+                //TODO: Рассмотреть другие случаи
+                if(mr->rangesize != 1)
+                    continue;
+                
+                struct ip_nat_range got_range = mr->range[0];
+                
+                //Костыль?
+                if(got_range.min_ip == 0x00 && got_range.max_ip == 0x00)
+                {
+                    struct ip_nat_range temp_range = {};
+                    memcpy(&temp_range, &mr->range[1], sizeof(struct ip_nat_range));
+                    got_range.max_ip = temp_range.flags;
+                    got_range.min_ip = got_range.flags;
+                }
+                
+                struct ip_nat_range range = parse_range(conditions.action_params);
+                if (got_range.min_ip != range.min_ip
+                       || got_range.max_ip != range.max_ip
+                       || got_range.min.all != range.min.all
+                       || got_range.max.all != range.max.all)
                     continue;
             }
             
