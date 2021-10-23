@@ -28,7 +28,7 @@ int Core::add_rule(unsigned int index)
     }
     
     if(index < 250)
-        instance_pointer->iptc.add_rule(rules[index], "nat", "PREROUTING", (index - 1) % 2 + 1);
+        instance_pointer->iptc.add_rule(rules[index], "nat", "PREROUTING", (index == 1) ? 0x00 : (index - 1) % 2 + 1);
     else if(index > 250 && index < 750)
         instance_pointer->iptc.add_rule(rules[index], "filter", "FORWARD", (index - 1 - 250) % 2 + 1);
     else if(index > 750)

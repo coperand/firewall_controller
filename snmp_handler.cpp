@@ -256,6 +256,8 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_SRCMASK:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if(!ret & !check_mask(*request->requestvb->val.integer))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -270,6 +272,8 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_DSTMASK:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if(!ret & !check_mask(*request->requestvb->val.integer))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -506,13 +510,14 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     }
                     case COLUMN_COMMAND:
                     {
+                        int result = SNMP_ERR_INCONSISTENTVALUE;
                         if(request->requestvb->val.string[0] == 0x00)
-                            add_callback(*(table_info->indexes->val.integer));
+                            result = add_callback(*(table_info->indexes->val.integer));
                         else if(request->requestvb->val.string[0] == 0x01)
-                            del_callback(*(table_info->indexes->val.integer));
-                        else
-                            netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
+                            result = del_callback(*(table_info->indexes->val.integer));
                         
+                        if(result)
+                            netsnmp_set_request_error(reqinfo, request, result);
                         break;
                     }
                     
@@ -602,4 +607,31 @@ int SnmpHandler::check_val(int type, int waiting_type, void *val, vector<int> po
     }
     
     return 0;
+}
+
+bool SnmpHandler::check_mask(unsigned int mask)
+{
+    //Переворачиваем маску, т.к. подразумевается сетевой порядок байт
+    mask = htonl(mask);
+    
+    //Счетчик нужен для избежания бесконечных циклов
+    uint8_t counter = 0;
+    
+    //Проходимся по нулям справа налево
+    while(!((mask >> 1) & 0x01))
+    {
+        mask >>= 1;
+        if(++counter >= 8 * sizeof(mask))
+        {
+            counter--;
+            break;
+        }
+    }
+    
+    //Проходимся по единицам справа налево
+    while(((mask = mask >> 1) & 0x01))
+        ++counter;
+    
+    //Если маска была пройдена целиком, значит она удовлетворяет требованиям
+    return (mask == 0x00) && (counter + 1 == 8 * sizeof(mask));
 }
