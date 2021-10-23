@@ -512,7 +512,20 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     {
                         int result = SNMP_ERR_INCONSISTENTVALUE;
                         if(request->requestvb->val.string[0] == 0x00)
+                        {
+                            if((reinterpret_cast<struct rule*>(data_context)->src_ip == 0 && reinterpret_cast<struct rule*>(data_context)->src_mask != 0) ||
+                                (reinterpret_cast<struct rule*>(data_context)->dst_ip == 0 && reinterpret_cast<struct rule*>(data_context)->dst_mask != 0))
+                            {
+                                netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
+                                break;
+                            }
+                            if(reinterpret_cast<struct rule*>(data_context)->src_ip != 0 && reinterpret_cast<struct rule*>(data_context)->src_mask == 0)
+                                reinterpret_cast<struct rule*>(data_context)->src_mask = inet_addr("255.255.255.255");
+                            if(reinterpret_cast<struct rule*>(data_context)->dst_ip != 0 && reinterpret_cast<struct rule*>(data_context)->dst_mask == 0)
+                                reinterpret_cast<struct rule*>(data_context)->dst_mask = inet_addr("255.255.255.255");
+                            
                             result = add_callback(*(table_info->indexes->val.integer));
+                        }
                         else if(request->requestvb->val.string[0] == 0x01)
                             result = del_callback(*(table_info->indexes->val.integer));
                         
