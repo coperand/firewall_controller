@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <vector>
 #include <map>
 #include <algorithm>

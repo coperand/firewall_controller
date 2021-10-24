@@ -256,7 +256,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_SRCMASK:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
-                        if(!ret & !check_mask(*request->requestvb->val.integer))
+                        if(!ret && !check_mask(*request->requestvb->val.integer))
                             ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
@@ -272,7 +272,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_DSTMASK:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
-                        if(!ret & !check_mask(*request->requestvb->val.integer))
+                        if(!ret && !check_mask(*request->requestvb->val.integer))
                             ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
@@ -281,6 +281,8 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_INIFACE:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if(!ret && !if_nametoindex((const char*)request->requestvb->val.string))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -288,6 +290,8 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_OUTIFACE:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if(!ret && !if_nametoindex((const char*)request->requestvb->val.string))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -337,6 +341,10 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case COLUMN_ACTION:
                     {
                         ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), ACTION_values);
+                        if(!ret && (*(table_info->indexes->val.integer) < 250 && *request->requestvb->val.integer != 5) ||
+                                    (*(table_info->indexes->val.integer) >= 250 && *(table_info->indexes->val.integer) < 750 && (*request->requestvb->val.integer == 4 || *request->requestvb->val.integer == 5)) ||
+                                    (*(table_info->indexes->val.integer) >= 750 && *request->requestvb->val.integer != 4))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -523,6 +531,28 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                                 reinterpret_cast<struct rule*>(data_context)->src_mask = inet_addr("255.255.255.255");
                             if(reinterpret_cast<struct rule*>(data_context)->dst_ip != 0 && reinterpret_cast<struct rule*>(data_context)->dst_mask == 0)
                                 reinterpret_cast<struct rule*>(data_context)->dst_mask = inet_addr("255.255.255.255");
+                            
+                            if((reinterpret_cast<struct rule*>(data_context)->sport.min > reinterpret_cast<struct rule*>(data_context)->sport.max) ||
+                                (reinterpret_cast<struct rule*>(data_context)->dport.min > reinterpret_cast<struct rule*>(data_context)->dport.max))
+                            {
+                                netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
+                                break;
+                            }
+                            
+                            if(reinterpret_cast<struct rule*>(data_context)->proto != protocol::udp && reinterpret_cast<struct rule*>(data_context)->proto != protocol::tcp &&
+                                (reinterpret_cast<struct rule*>(data_context)->sport.min != 0 || reinterpret_cast<struct rule*>(data_context)->sport.max != 0 ||
+                                 reinterpret_cast<struct rule*>(data_context)->dport.min != 0 || reinterpret_cast<struct rule*>(data_context)->dport.max != 0))
+                            {
+                                netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
+                                break;
+                            }
+                            
+                            if(reinterpret_cast<struct rule*>(data_context)->action_params.size() > 0 &&
+                                    reinterpret_cast<struct rule*>(data_context)->action != "SNAT" && reinterpret_cast<struct rule*>(data_context)->action != "DNAT")
+                            {
+                                netsnmp_set_request_error(reqinfo, request, SNMP_ERR_INCONSISTENTVALUE);
+                                break;
+                            }
                             
                             result = add_callback(*(table_info->indexes->val.integer));
                         }

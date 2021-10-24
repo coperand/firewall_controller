@@ -169,8 +169,7 @@ fcFFAction OBJECT-TYPE
                         drop(2),
                         reject(3),
                         snat(4),
-                        dnat(5),
-                        redirect(6)
+                        dnat(5)
                        }
     MAX-ACCESS read-create
     STATUS     current
