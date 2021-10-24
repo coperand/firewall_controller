@@ -11,7 +11,7 @@ IMPORTS
         FROM SNMPv2-TC;
 
 firewallController MODULE-IDENTITY
-    LAST-UPDATED "202108300000Z"
+    LAST-UPDATED "202110240000Z"
     ORGANIZATION "AO Koncern Sozvezdie"
     CONTACT-INFO
             ""
@@ -19,88 +19,100 @@ firewallController MODULE-IDENTITY
             "The Firewall Controller MIB module."
     ::= { unix 199 }
 
-firewallFilter OBJECT IDENTIFIER ::= { firewallController 1 }
-
-firewallFilterForwardTable OBJECT-TYPE
-    SYNTAX     SEQUENCE OF firewallFilterForwardEntry
+firewallControllerTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF firewallControllerEntry
     MAX-ACCESS not-accessible
     STATUS     current
     DESCRIPTION
             ""
-    ::= { firewallFilter 1 }
+    ::= { firewallController 1 }
 
-firewallFilterForwardEntry OBJECT-TYPE
-    SYNTAX     firewallFilterForwardEntry
+firewallControllerEntry OBJECT-TYPE
+    SYNTAX     firewallControllerEntry
     MAX-ACCESS not-accessible
     STATUS     current
     DESCRIPTION
             ""
-    INDEX      { fcFFIndex }
-    ::= { firewallFilterForwardTable 1 }
+    INDEX      { fcIndex }
+    ::= { firewallControllerTable 1 }
 
-firewallFilterForwardEntry ::= SEQUENCE {
-    fcFFIndex                               Unsigned32,
-    fcFFSrcAddr                             IpAddress,
-    fcFFDstAddr                             IpAddress
+firewallControllerEntry ::= SEQUENCE {
+    fcIndex           Unsigned32,
+    fcSrcAddr         IpAddress,
+    fcSrcMask         IpAddress,
+    fcDstAddr         IpAddress,
+    fcDstMask         IpAddress,
+    fcInIface         OCTET STRING,
+    fcOutIface        OCTET STRING,
+    fcProto           INTEGER,
+    fcSrcPortMin      Unsigned32,
+    fcSrcPortMax      Unsigned32,
+    fcDstPortMin      Unsigned32,
+    fcDstPortMax      Unsigned32,
+    fcState           BIT STRING,
+    fcAction          INTEGER,
+    fcActionParams    OCTET STRING,
+    fcInverseFlags    BIT STRING,
+    fcCommand         INTEGER
 }
 
-fcFFIndex OBJECT-TYPE
+fcIndex OBJECT-TYPE
     SYNTAX     Unsigned32
     MAX-ACCESS not-accessible
     STATUS     current
     DESCRIPTION
             "Entry index"
-    ::= { firewallFilterForwardEntry 1 }
+    ::= { firewallControllerEntry 1 }
 
-fcFFSrcAddr OBJECT-TYPE
+fcSrcAddr OBJECT-TYPE
     SYNTAX     IpAddress
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Source ip address"
-    ::= { firewallFilterForwardEntry 2 }
+    ::= { firewallControllerEntry 2 }
 
-fcFFSrcMask OBJECT-TYPE
+fcSrcMask OBJECT-TYPE
     SYNTAX     IpAddress
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Source network mask"
-    ::= { firewallFilterForwardEntry 3 }
+    ::= { firewallControllerEntry 3 }
 
-fcFFDstAddr OBJECT-TYPE
+fcDstAddr OBJECT-TYPE
     SYNTAX     IpAddress
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Destination ip address"
-    ::= { firewallFilterForwardEntry 4 }
+    ::= { firewallControllerEntry 4 }
 
-fcFFDstMask OBJECT-TYPE
+fcDstMask OBJECT-TYPE
     SYNTAX     IpAddress
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Destination network mask"
-    ::= { firewallFilterForwardEntry 5 }
+    ::= { firewallControllerEntry 5 }
 
-fcFFInIface OBJECT-TYPE
+fcInIface OBJECT-TYPE
     SYNTAX     OCTET STRING
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Input interface"
-    ::= { firewallFilterForwardEntry 6 }
+    ::= { firewallControllerEntry 6 }
 
-fcFFOutIface OBJECT-TYPE
+fcOutIface OBJECT-TYPE
     SYNTAX     OCTET STRING
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Output interface"
-    ::= { firewallFilterForwardEntry 7 }
+    ::= { firewallControllerEntry 7 }
 
-fcFFProto OBJECT-TYPE
+fcProto OBJECT-TYPE
     SYNTAX     INTEGER
                        {
                         none(0),
@@ -112,41 +124,41 @@ fcFFProto OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "OSI-4 protocol"
-    ::= { firewallFilterForwardEntry 8 }
+    ::= { firewallControllerEntry 8 }
 
-fcFFSrcPortMin OBJECT-TYPE
+fcSrcPortMin OBJECT-TYPE
     SYNTAX     Unsigned32
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Source port range left-value"
-    ::= { firewallFilterForwardEntry 9 }
+    ::= { firewallControllerEntry 9 }
 
-fcFFSrcPortMax OBJECT-TYPE
+fcSrcPortMax OBJECT-TYPE
     SYNTAX     Unsigned32
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Source port range right-value"
-    ::= { firewallFilterForwardEntry 10 }
+    ::= { firewallControllerEntry 10 }
 
-fcFFDstPortMin OBJECT-TYPE
+fcDstPortMin OBJECT-TYPE
     SYNTAX     Unsigned32
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Destination port range left-value"
-    ::= { firewallFilterForwardEntry 11 }
+    ::= { firewallControllerEntry 11 }
 
-fcFFDstPortMax OBJECT-TYPE
+fcDstPortMax OBJECT-TYPE
     SYNTAX     Unsigned32
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Destination port range right-value"
-    ::= { firewallFilterForwardEntry 12 }
+    ::= { firewallControllerEntry 12 }
 
-fcFFState OBJECT-TYPE
+fcState OBJECT-TYPE
     SYNTAX     BIT STRING
                        {
                         none(0),
@@ -159,9 +171,9 @@ fcFFState OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "Connection state"
-    ::= { firewallFilterForwardEntry 13 }
+    ::= { firewallControllerEntry 13 }
 
-fcFFAction OBJECT-TYPE
+fcAction OBJECT-TYPE
     SYNTAX     INTEGER
                        {
                         unknown(0),
@@ -175,17 +187,17 @@ fcFFAction OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "Netfilter action"
-    ::= { firewallFilterForwardEntry 14 }
+    ::= { firewallControllerEntry 14 }
 
-fcFFActionParams OBJECT-TYPE
+fcActionParams OBJECT-TYPE
     SYNTAX     OCTET STRING
     MAX-ACCESS read-create
     STATUS     current
     DESCRIPTION
             "Action parameters"
-    ::= { firewallFilterForwardEntry 15 }
+    ::= { firewallControllerEntry 15 }
 
-fcFFInverseFlags OBJECT-TYPE
+fcInverseFlags OBJECT-TYPE
     SYNTAX     BIT STRING
                         {
                          dport(0),
@@ -201,10 +213,9 @@ fcFFInverseFlags OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "Rule conditions inverse flags"
-    ::= { firewallFilterForwardEntry 16 }
+    ::= { firewallControllerEntry 16 }
 
-
-fcFFCommand OBJECT-TYPE
+fcCommand OBJECT-TYPE
     SYNTAX     INTEGER
                        {
                         add(0),
@@ -214,9 +225,10 @@ fcFFCommand OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "Table entry commands"
-    ::= { firewallFilterForwardEntry 17 }
+    ::= { firewallControllerEntry 17 }
 
-fcFFPolicy OBJECT-TYPE
+
+fcPolicy OBJECT-TYPE
     SYNTAX     INTEGER
                        {
                         drop(0),
@@ -226,6 +238,6 @@ fcFFPolicy OBJECT-TYPE
     STATUS     current
     DESCRIPTION
             "Default action"
-    ::= { firewallFilter 2  }
+    ::= { firewallController 2  }
 
 END

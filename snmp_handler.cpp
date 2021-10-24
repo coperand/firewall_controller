@@ -2,6 +2,7 @@
 
 using namespace std;
 
+//Инициализируем статические переменные
 map<unsigned int, struct rule>* SnmpHandler::container = NULL;
 map<unsigned int, struct rule>::iterator* SnmpHandler::it = NULL;
 int (*SnmpHandler::add_callback)(unsigned int index) = NULL;
@@ -12,6 +13,7 @@ uint8_t* SnmpHandler::policy = NULL;
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
                                 int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy)
 {
+    //Задаем рабочие значения статическим переменным
     this->container = container;
     this->it = it;
     this->add_callback = add_callback;
@@ -19,21 +21,28 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     this->policy_callback = policy_callback;
     this->policy = policy;
     
+    //Устанавливаем роль программы как суб-агента
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
     SOCK_STARTUP;
     
-    init_agent("Graduation_agent");
+    //Инициализируем части библиотеки, предназначенные для работы с SNMP и AgentX
     init_snmp("Graduation_snmp");
+    init_agent("Graduation_agent");
     
+    //Регистрируем обработчики для значений, за которые мы отвечаем
     init_table(table_oid, oid_len, table_name);
     init_policy(table_oid, oid_len, table_name);
 }
 
 SnmpHandler::~SnmpHandler()
 {
-    //TODO: Завершение работы с snmp
+    //Завершаем работу с SNMP
+    shutdown_agent();
+    snmp_shutdown("Graduation_snmp");
+    SOCK_CLEANUP;
 }
 
+//Функция получения начальной точки в контейнере
 netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(!container->size())
@@ -52,6 +61,7 @@ netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context,
     return put_index_data;
 }
 
+//Функция получения следующей точки в контейнере
 netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(++(*it) == container->end())
@@ -68,6 +78,7 @@ netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, 
     return put_index_data;
 }
 
+//Функция создания нового элемента в контейнере
 void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int column)
 {
     if( (*index_data->val.integer) % 2 == 0 )
@@ -76,6 +87,7 @@ void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int co
     return &(*container)[(*index_data->val.integer)];
 }
 
+//Функция регистрации обработчика для таблица
 void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_name)
 {
     netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
@@ -103,12 +115,14 @@ void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_
     netsnmp_register_table_iterator(my_handler, iinfo);
 }
 
+//Функция регистрации обработчика для поля fcPolicy
 void SnmpHandler::init_policy(oid* table_oid, unsigned int oid_len, string table_name)
 {
     table_oid[oid_len / sizeof(oid) - 1] += 1;
     netsnmp_register_scalar( netsnmp_create_handler_registration((table_name + string("Policy")).data(), policy_request_handler, table_oid, oid_len / sizeof(oid), HANDLER_CAN_RWRITE) );
 }
 
+//Обработчик запросов к таблице
 int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
 {
     for(netsnmp_request_info *request = requests; request; request = request->next)
@@ -152,57 +166,57 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
         {
             case MODE_GET:
             {
-                switch(table_info->colnum)
+                switch(static_cast<columns>(table_info->colnum))
                 {
-                    case COLUMN_SRCADDR:
+                    case columns::src_addr:
                         get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->src_ip, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
-                    case COLUMN_SRCMASK:
+                    case columns::src_mask:
                         get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->src_mask, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
-                    case COLUMN_DSTADDR:
+                    case columns::dst_addr:
                         get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->dst_ip, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
-                    case COLUMN_DSTMASK:
+                    case columns::dst_mask:
                         get_integer<in_addr_t>(&reinterpret_cast<struct rule*>(data_context)->dst_mask, ASN_IPADDRESS, request, reqinfo);
                         break;
                     
-                    case COLUMN_INIFACE:
+                    case columns::in_iface:
                         get_char(&reinterpret_cast<struct rule*>(data_context)->in_if, request, reqinfo);
                         break;
                     
-                    case COLUMN_OUTIFACE:
+                    case columns::out_iface:
                         get_char(&reinterpret_cast<struct rule*>(data_context)->out_if, request, reqinfo);
                         break;
                     
-                    case COLUMN_PROTO:
+                    case columns::proto:
                         get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->proto), ASN_INTEGER, request, reqinfo);
                         break;
                     
-                    case COLUMN_SRCPORTMIN:
+                    case columns::src_port_min:
                         get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.min), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
-                    case COLUMN_SRCPORTMAX:
+                    case columns::src_port_max:
                         get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->sport.max), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
-                    case COLUMN_DSTPORTMIN:
+                    case columns::dst_port_min:
                         get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.min), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
-                    case COLUMN_DSTPORTMAX:
+                    case columns::dst_port_max:
                         get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->dport.max), ASN_UNSIGNED, request, reqinfo);
                         break;
                     
-                    case COLUMN_STATE:
+                    case columns::state:
                         get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request, reqinfo);
                         break;
                     
-                    case COLUMN_ACTION:
+                    case columns::action:
                     {
                         if(reinterpret_cast<struct rule*>(data_context)->action.size() == 0)
                             break;
@@ -229,11 +243,11 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         snmp_set_var_typed_value(request->requestvb, ASN_INTEGER, &number, sizeof(uint16_t));
                         break;
                     }
-                    case COLUMN_ACTIONPARAMS:
+                    case columns::action_params:
                         get_char(&reinterpret_cast<struct rule*>(data_context)->action_params, request, reqinfo);
                         break;
                     
-                    case COLUMN_INVERSEFLAGS:
+                    case columns::inverse_flags:
                         get_integer<uint16_t>(reinterpret_cast<uint16_t*>(&reinterpret_cast<struct rule*>(data_context)->inv_flags), ASN_OCTET_STR, request, reqinfo);
                         break;
                     
@@ -246,32 +260,16 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
             case MODE_SET_RESERVE2:
             {
                 int ret = -1;
-                switch(table_info->colnum)
+                switch(static_cast<columns>(table_info->colnum))
                 {
-                    case COLUMN_SRCADDR:
+                    case columns::src_addr:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_SRCMASK:
-                    {
-                        ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
-                        if(!ret && !check_mask(*request->requestvb->val.integer))
-                            ret = SNMP_ERR_INCONSISTENTVALUE;
-                        if (ret != 0)
-                            netsnmp_set_request_error(reqinfo, request, ret);
-                        break;
-                    }
-                    case COLUMN_DSTADDR:
-                    {
-                        ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
-                        if (ret != 0)
-                            netsnmp_set_request_error(reqinfo, request, ret);
-                        break;
-                    }
-                    case COLUMN_DSTMASK:
+                    case columns::src_mask:
                     {
                         ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if(!ret && !check_mask(*request->requestvb->val.integer))
@@ -280,7 +278,23 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_INIFACE:
+                    case columns::dst_addr:
+                    {
+                        ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if (ret != 0)
+                            netsnmp_set_request_error(reqinfo, request, ret);
+                        break;
+                    }
+                    case columns::dst_mask:
+                    {
+                        ret = check_val(request->requestvb->type, ASN_IPADDRESS, reinterpret_cast<void*>(request->requestvb->val.string), {});
+                        if(!ret && !check_mask(*request->requestvb->val.integer))
+                            ret = SNMP_ERR_INCONSISTENTVALUE;
+                        if (ret != 0)
+                            netsnmp_set_request_error(reqinfo, request, ret);
+                        break;
+                    }
+                    case columns::in_iface:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if(!ret && !if_nametoindex((const char*)request->requestvb->val.string))
@@ -289,7 +303,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_OUTIFACE:
+                    case columns::out_iface:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if(!ret && !if_nametoindex((const char*)request->requestvb->val.string))
@@ -298,51 +312,51 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_PROTO:
+                    case columns::proto:
                     {
-                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), PROTO_values);
+                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), proto_possible_values);
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_SRCPORTMIN:
+                    case columns::src_port_min:
                     {
                         ret = check_val(request->requestvb->type, ASN_UNSIGNED, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_SRCPORTMAX:
+                    case columns::src_port_max:
                     {
                         ret = check_val(request->requestvb->type, ASN_UNSIGNED, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_DSTPORTMIN:
+                    case columns::dst_port_min:
                     {
                         ret = check_val(request->requestvb->type, ASN_UNSIGNED, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_DSTPORTMAX:
+                    case columns::dst_port_max:
                     {
                         ret = check_val(request->requestvb->type, ASN_UNSIGNED, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_STATE:
+                    case columns::state:
                     {
-                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), STATE_values);
+                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), state_possible_values);
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_ACTION:
+                    case columns::action:
                     {
-                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), ACTION_values);
+                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), action_possible_values);
                         if(!ret && (*(table_info->indexes->val.integer) < 250 && *request->requestvb->val.integer != 5) ||
                                     (*(table_info->indexes->val.integer) >= 250 && *(table_info->indexes->val.integer) < 750 && (*request->requestvb->val.integer == 4 || *request->requestvb->val.integer == 5)) ||
                                     (*(table_info->indexes->val.integer) >= 750 && *request->requestvb->val.integer != 4))
@@ -351,23 +365,23 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_ACTIONPARAMS:
+                    case columns::action_params:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_INVERSEFLAGS:
+                    case columns::inverse_flags:
                     {
                         ret = check_val(request->requestvb->type, ASN_OCTET_STR, reinterpret_cast<void*>(request->requestvb->val.string), {});
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
                     }
-                    case COLUMN_COMMAND:
+                    case columns::command:
                     {
-                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), COMMAND_values);
+                        ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), command_possible_values);
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);
                         break;
@@ -380,9 +394,9 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
             
             case MODE_SET_ACTION:
             {
-                switch(table_info->colnum)
+                switch(static_cast<columns>(table_info->colnum))
                 {
-                    case COLUMN_SRCADDR:
+                    case columns::src_addr:
                     {
                         reinterpret_cast<struct rule*>(data_context)->src_ip = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -390,7 +404,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_SRCMASK:
+                    case columns::src_mask:
                     {
                         reinterpret_cast<struct rule*>(data_context)->src_mask = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -398,7 +412,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_DSTADDR:
+                    case columns::dst_addr:
                     {
                         reinterpret_cast<struct rule*>(data_context)->dst_ip = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -406,7 +420,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_DSTMASK:
+                    case columns::dst_mask:
                     {
                         reinterpret_cast<struct rule*>(data_context)->dst_mask = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -414,7 +428,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_INIFACE:
+                    case columns::in_iface:
                     {
                         reinterpret_cast<struct rule*>(data_context)->in_if.clear();
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -422,7 +436,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_OUTIFACE:
+                    case columns::out_iface:
                     {
                         reinterpret_cast<struct rule*>(data_context)->out_if.clear();
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -430,7 +444,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_PROTO:
+                    case columns::proto:
                     {
                         unsigned int temp = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -439,7 +453,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_SRCPORTMIN:
+                    case columns::src_port_min:
                     {
                         reinterpret_cast<struct rule*>(data_context)->sport.min = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -447,7 +461,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_SRCPORTMAX:
+                    case columns::src_port_max:
                     {
                         reinterpret_cast<struct rule*>(data_context)->sport.max = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -455,7 +469,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_DSTPORTMIN:
+                    case columns::dst_port_min:
                     {
                         reinterpret_cast<struct rule*>(data_context)->dport.min = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -463,7 +477,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_DSTPORTMAX:
+                    case columns::dst_port_max:
                     {
                         reinterpret_cast<struct rule*>(data_context)->dport.max = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -471,7 +485,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_STATE:
+                    case columns::state:
                     {
                         reinterpret_cast<struct rule*>(data_context)->state = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -479,7 +493,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_ACTION:
+                    case columns::action:
                     {
                         unsigned int action = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -502,7 +516,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_ACTIONPARAMS:
+                    case columns::action_params:
                     {
                         reinterpret_cast<struct rule*>(data_context)->action_params.clear();
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -510,7 +524,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_INVERSEFLAGS:
+                    case columns::inverse_flags:
                     {
                         reinterpret_cast<struct rule*>(data_context)->inv_flags = 0;
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
@@ -518,11 +532,12 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         
                         break;
                     }
-                    case COLUMN_COMMAND:
+                    case columns::command:
                     {
                         int result = SNMP_ERR_INCONSISTENTVALUE;
                         if(request->requestvb->val.string[0] == 0x00)
                         {
+                            //Проводим дополнительную валидацию перед добавлением нового элемента
                             if((reinterpret_cast<struct rule*>(data_context)->src_ip == 0 && reinterpret_cast<struct rule*>(data_context)->src_mask != 0) ||
                                 (reinterpret_cast<struct rule*>(data_context)->dst_ip == 0 && reinterpret_cast<struct rule*>(data_context)->dst_mask != 0))
                             {
@@ -575,6 +590,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
     return SNMP_ERR_NOERROR;
 }
 
+//Обработчик запросов к полю fcPolicy
 int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
 {
     switch(reqinfo->mode)

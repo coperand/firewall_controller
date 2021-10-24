@@ -10,6 +10,7 @@ struct range
     uint16_t max;
 };
 
+//Вохможные значения протокола
 enum class protocol: uint8_t
 {
     none = 0,

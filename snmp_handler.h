@@ -14,6 +14,34 @@
 
 #include "structs.h"
 
+//Перечисление столбцов таблицы
+enum class columns
+{
+    index = 1,
+    src_addr = 2,
+    src_mask = 3,
+    dst_addr = 4,
+    dst_mask = 5,
+    in_iface = 6,
+    out_iface = 7,
+    proto = 8,
+    src_port_min = 9,
+    src_port_max = 10,
+    dst_port_min = 11,
+    dst_port_max = 12,
+    state = 13,
+    action = 14,
+    action_params = 15,
+    inverse_flags = 16,
+    command = 17
+};
+
+//Корректные значения для установки в заданные столбцы
+const std::vector<int> proto_possible_values = {0, 1, 6, 17};
+const std::vector<int> state_possible_values = {0, 1, 2, 3, 4};
+const std::vector<int> action_possible_values = {1, 2, 3, 4, 5, 6};
+const std::vector<int> command_possible_values = {0, 1};
+
 class SnmpHandler
 {
 public:
@@ -27,6 +55,7 @@ private:
     static std::map<unsigned int, struct rule>::iterator* it;
     static uint8_t* policy;
     
+    //Callback`и для выполнения set-запросов
     static int (*add_callback)(unsigned int index);
     static int (*del_callback)(unsigned int index);
     static int (*policy_callback)(uint8_t policy);
@@ -35,9 +64,11 @@ private:
     static netsnmp_variable_list* get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
     static netsnmp_variable_list* get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);
     static void* create_data_context(netsnmp_variable_list *index_data, int column);
-    //Функция инициализации обработчиков запросов
+    
+    //Функции инициализации обработчиков запросов
     static void init_table(oid* table_oid, unsigned int oid_len, std::string table_name);
     static void init_policy(oid* table_oid, unsigned int oid_len, std::string table_name);
+    
     //Функции обработки запросов
     static int request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
     static int policy_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests);
@@ -50,27 +81,4 @@ private:
     static bool check_mask(unsigned int mask);
 };
 
-/* column number definitions for table firewallFilterForwardTable */
-       #define COLUMN_INDEX		1
-       #define COLUMN_SRCADDR		2
-       #define COLUMN_SRCMASK		3
-       #define COLUMN_DSTADDR		4
-       #define COLUMN_DSTMASK		5
-       #define COLUMN_INIFACE		6
-       #define COLUMN_OUTIFACE		7
-       #define COLUMN_PROTO		8
-       #define COLUMN_SRCPORTMIN	9
-       #define COLUMN_SRCPORTMAX	10
-       #define COLUMN_DSTPORTMIN	11
-       #define COLUMN_DSTPORTMAX	12
-       #define COLUMN_STATE		13
-       #define COLUMN_ACTION		14
-       #define COLUMN_ACTIONPARAMS	15
-       #define COLUMN_INVERSEFLAGS	16
-       #define COLUMN_COMMAND		17
 
-/*possible values*/
-const std::vector<int> PROTO_values = {0, 1, 6, 17};
-const std::vector<int> STATE_values = {0, 1, 2, 3, 4};
-const std::vector<int> ACTION_values = {1, 2, 3, 4, 5, 6};
-const std::vector<int> COMMAND_values = {0, 1};
