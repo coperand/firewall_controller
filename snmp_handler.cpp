@@ -26,8 +26,8 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     SOCK_STARTUP;
     
     //Инициализируем части библиотеки, предназначенные для работы с SNMP и AgentX
-    init_snmp("Graduation_snmp");
     init_agent("Graduation_agent");
+    init_snmp("Graduation_snmp");
     
     //Регистрируем обработчики для значений, за которые мы отвечаем
     init_table(table_oid, oid_len, table_name);
@@ -37,8 +37,8 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
 SnmpHandler::~SnmpHandler()
 {
     //Завершаем работу с SNMP
-    shutdown_agent();
     snmp_shutdown("Graduation_snmp");
+    shutdown_agent();
     SOCK_CLEANUP;
 }
 

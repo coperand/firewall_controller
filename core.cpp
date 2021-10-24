@@ -12,6 +12,10 @@ Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : ipt
 {
     instance_pointer = this;
     rules_it = rules.begin();
+    
+    iptc.add_chain("nat", "fcDNAT");
+    iptc.add_chain("mangle", "fcFILTERING");
+    iptc.add_chain("nat", "fcSNAT");
 }
 
 Core::~Core()

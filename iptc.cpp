@@ -12,6 +12,32 @@ IpTc::~IpTc()
 
 }
 
+int IpTc::add_chain(string table, string chain)
+{
+    //Инициализируем таблицу
+    struct xtc_handle *h = iptc_init(table.data());
+    if(!h)
+    {
+        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        return -1;
+    }
+    
+    //Добавляем цепочку в таблицу
+    iptc_create_chain(chain.data(), h);
+    
+    //Применяем изменения
+    if(!iptc_commit(h))
+    {
+        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        iptc_free(h);
+        return -1;
+    }
+    
+    //Освобождаем ресурсы
+    iptc_free(h);
+    return 0;
+}
+
 int IpTc::del_rule(struct rule conditions, string table, string chain)
 {
     //Инициализируем таблицу
