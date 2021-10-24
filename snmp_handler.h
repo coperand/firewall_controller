@@ -19,7 +19,7 @@ class SnmpHandler
 public:
     SnmpHandler() = delete;
     SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name, std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it,
-                                    int (*add_callback)(unsigned int index), int (*del_callback)(unsigned int index), uint8_t* policy);
+                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy);
     ~SnmpHandler();
 private:
     //Переменные для работы с контейнером
@@ -29,6 +29,7 @@ private:
     
     static int (*add_callback)(unsigned int index);
     static int (*del_callback)(unsigned int index);
+    static int (*policy_callback)(uint8_t policy);
     
     //Функции, связанные с контекстом
     static netsnmp_variable_list* get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata);

@@ -13,6 +13,7 @@ public:
     
     static int add_rule(unsigned int index);
     static int del_rule(unsigned int index);
+    static int change_policy(uint8_t policy);
     
     void cycle();
 private:

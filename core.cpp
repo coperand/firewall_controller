@@ -7,7 +7,8 @@ map<unsigned int, struct rule> Core::rules = {};
 map<unsigned int, struct rule>::iterator Core::rules_it = Core::rules.begin();
 uint8_t Core::policy = 1;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, &policy}, iptc_timer{}, refresh_timeout{refresh_timeout}
+Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy},
+                                                                             iptc_timer{}, refresh_timeout{refresh_timeout}
 {
     instance_pointer = this;
     rules_it = rules.begin();
@@ -66,6 +67,12 @@ int Core::del_rule(unsigned int index)
     return result;
 }
 
+int Core::change_policy(uint8_t policy)
+{
+    instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
+    
+    return instance_pointer->iptc.change_policy("filter", "FORWARD", policy);
+}
 
 void Core::cycle()
 {
