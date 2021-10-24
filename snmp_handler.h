@@ -17,7 +17,6 @@
 //Перечисление столбцов таблицы
 enum class columns
 {
-    index = 1,
     src_addr = 2,
     src_mask = 3,
     dst_addr = 4,

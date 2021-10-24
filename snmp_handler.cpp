@@ -357,9 +357,9 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                     case columns::action:
                     {
                         ret = check_val(request->requestvb->type, ASN_INTEGER, reinterpret_cast<void*>(request->requestvb->val.string), action_possible_values);
-                        if(!ret && (*(table_info->indexes->val.integer) < 250 && *request->requestvb->val.integer != 5) ||
+                        if( !ret && ((*(table_info->indexes->val.integer) < 250 && *request->requestvb->val.integer != 5) ||
                                     (*(table_info->indexes->val.integer) >= 250 && *(table_info->indexes->val.integer) < 750 && (*request->requestvb->val.integer == 4 || *request->requestvb->val.integer == 5)) ||
-                                    (*(table_info->indexes->val.integer) >= 750 && *request->requestvb->val.integer != 4))
+                                    (*(table_info->indexes->val.integer) >= 750 && *request->requestvb->val.integer != 4)) )
                             ret = SNMP_ERR_INCONSISTENTVALUE;
                         if (ret != 0)
                             netsnmp_set_request_error(reqinfo, request, ret);

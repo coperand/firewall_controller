@@ -4,7 +4,7 @@ CLEAN = rm -f
 PROG_NAME = graduation
 BIN_DIR = binary
 SOURCES = $(wildcard *.cpp)
-FLAGS =
+FLAGS = -Wall -Weffc++
 LIBS = -lip4tc -lnetsnmp -lnetsnmpagent
 
 

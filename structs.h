@@ -39,8 +39,8 @@ struct rule
     //Состояние
     uint8_t state = 0;
     //Действие
-    std::string action;
-    std::string action_params;
+    std::string action = {};
+    std::string action_params = {};
     //Флаги инверсии (побитово)
     uint16_t inv_flags = 0x1000;
 };

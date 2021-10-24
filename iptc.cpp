@@ -104,8 +104,6 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                     
                     if(proto == 6 || proto == 17)
                     {
-                        uint16_t temp[2];
-                        
                         if(conditions.sport.min != 0 || conditions.sport.max != 0)
                         {
                             if( (((struct ipt_tcp *)match->data)->invflags & 0x01) != (conditions.inv_flags & 0x20) )
@@ -386,6 +384,8 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
         case protocol::udp:
             chain_entry->ip.proto = IPPROTO_UDP;
             break;
+        default:
+            break;
     }
     
     //Если протокол указан с инверсией, добавлять match не нужно
@@ -425,12 +425,13 @@ struct ipt_entry_match* IpTc::get_osi4_match(protocol proto, struct range sport,
         case protocol::udp:
             strncpy(match->u.user.name, "udp", IPT_FUNCTION_MAXNAMELEN);
             break;
+        default:
+            break;
     }
     
     //Парсим порты и добавляем информацию о них
     if(proto == protocol::tcp)
     {
-        struct ipt_tcp* tcpinfo = (struct ipt_tcp *) match->data;
         ((struct ipt_tcp*)match->data)->spts[1] = ((struct ipt_tcp*)match->data)->dpts[1] = 0xFFFF;
         if(sport.min != 0 || sport.max != 0)
         {
