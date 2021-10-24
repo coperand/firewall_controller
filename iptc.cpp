@@ -634,15 +634,18 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
     //Получаем политику по умолчанию
     struct ipt_counters counters;
     uint8_t policy = 0;
-    string policy_str = string(iptc_get_policy(chain.data(), &counters, h));
-    if(policy_str == string("DROP"))
-        policy = 0;
-    else if(policy_str == string("ACCEPT"))
-        policy = 1;
-    else
+    if(iptc_get_policy(chain.data(), &counters, h))
     {
-        printf("Failed to interpret %s policy\n", policy_str.data());
-        return {};
+        string policy_str = string(iptc_get_policy(chain.data(), &counters, h));
+        if(policy_str == string("DROP"))
+            policy = 0;
+        else if(policy_str == string("ACCEPT"))
+            policy = 1;
+        else
+        {
+            printf("Failed to interpret %s policy\n", policy_str.data());
+            return {};
+        }
     }
     
     map<unsigned int, struct rule> rules;

@@ -13,9 +13,21 @@ Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : ipt
     instance_pointer = this;
     rules_it = rules.begin();
     
+    struct rule conditions = {};
     iptc.add_chain("nat", "fcDNAT");
+    conditions.action = string("fcDNAT");
+    iptc.del_rule(conditions, "nat", "PREROUTING");
+    iptc.add_rule(conditions, "nat", "PREROUTING", 0);
+    
     iptc.add_chain("mangle", "fcFILTERING");
+    conditions.action = string("fcFILTERING");
+    iptc.del_rule(conditions, "mangle", "PREROUTING");
+    iptc.add_rule(conditions, "mangle", "PREROUTING", 0);
+    
     iptc.add_chain("nat", "fcSNAT");
+    conditions.action = string("fcSNAT");
+    iptc.del_rule(conditions, "nat", "POSTROUTING");
+    iptc.add_rule(conditions, "nat", "POSTROUTING", 0);
 }
 
 Core::~Core()
@@ -34,11 +46,11 @@ int Core::add_rule(unsigned int index)
     
     int result = 0;
     if(index < 250)
-        result = instance_pointer->iptc.add_rule(rules[index], "nat", "PREROUTING", (index == 1) ? 0x00 : (index - 1) % 2 + 1);
+        result = instance_pointer->iptc.add_rule(rules[index], "nat", "fcDNAT", (index == 1) ? 0x00 : (index - 1) % 2 + 1);
     else if(index > 250 && index < 750)
-        result = instance_pointer->iptc.add_rule(rules[index], "filter", "FORWARD", (index == 251) ? 0x00 : (index - 1 - 250) % 2 + 1);
+        result = instance_pointer->iptc.add_rule(rules[index], "mangle", "fcFILTERING", (index == 251) ? 0x00 : (index - 1 - 250) % 2 + 1);
     else if(index > 750)
-        result = instance_pointer->iptc.add_rule(rules[index], "nat", "POSTROUTRING", (index == 751) ? 0x00 : (index - 1 - 750) % 2 + 17);
+        result = instance_pointer->iptc.add_rule(rules[index], "nat", "fcSNAT", (index == 751) ? 0x00 : (index - 1 - 750) % 2 + 17);
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     
@@ -58,11 +70,11 @@ int Core::del_rule(unsigned int index)
     
     int result = 0;
     if(index < 250)
-        result = instance_pointer->iptc.del_rule(rules[index], "nat", "PREROUTING");
+        result = instance_pointer->iptc.del_rule(rules[index], "nat", "fcDNAT");
     else if(index > 250 && index < 750)
-        result = instance_pointer->iptc.del_rule(rules[index], "filter", "FORWARD");
+        result = instance_pointer->iptc.del_rule(rules[index], "mangle", "fcFILTERING");
     else if(index > 750)
-        result = instance_pointer->iptc.del_rule(rules[index], "nat", "POSTROUTRING");
+        result = instance_pointer->iptc.del_rule(rules[index], "nat", "fcSNAT");
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     
@@ -75,7 +87,7 @@ int Core::change_policy(uint8_t policy)
 {
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
-    return instance_pointer->iptc.change_policy("filter", "FORWARD", policy);
+    return instance_pointer->iptc.change_policy("mangle", "PREROUTING", policy);
 }
 
 void Core::cycle()
@@ -86,20 +98,20 @@ void Core::cycle()
         {
             rules.clear();
             
-            //TODO: Поменять на свои цепочки и добавить их создание
-            
-            auto from_kernel = iptc.print_rules("nat", "PREROUTING");
+            auto from_kernel = iptc.print_rules("nat", "fcDNAT");
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size && i < 250; i += 2)
                 rules[i] = from_kernel.first[i / 2];
             
-            from_kernel = iptc.print_rules("filter", "FORWARD");
+            from_kernel = iptc.print_rules("mangle", "fcFILTERING");
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size && i < 500; i += 2)
                 rules[250 + i] = from_kernel.first[i / 2];
-            policy = from_kernel.second;
             
-            from_kernel = iptc.print_rules("nat", "POSTROUTING");
+            from_kernel = iptc.print_rules("nat", "fcSNAT");
             for(unsigned int i = 2, size = 2 * from_kernel.first.size(); i <= size && i < 1000; i += 2)
                 rules[750 + i] = from_kernel.first[i / 2];
+            
+            from_kernel = iptc.print_rules("mangle", "PREROUTING");
+            policy = from_kernel.second;
             
             rules_it = rules.end();
             iptc_timer = chrono::steady_clock::now();
