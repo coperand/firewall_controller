@@ -134,6 +134,10 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
                 continue;
             if (conditions.dst_ip && conditions.dst_ip != e->ip.dst.s_addr)
                 continue;
+            if (conditions.src_mask && conditions.src_mask != e->ip.smsk.s_addr)
+                continue;
+            if (conditions.dst_mask && conditions.dst_mask != e->ip.dmsk.s_addr)
+                continue;
             if (conditions.in_if.size() && conditions.in_if != string(e->ip.iniface))
                 continue;
             if (conditions.out_if.size() && conditions.out_if != string(e->ip.outiface))
