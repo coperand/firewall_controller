@@ -62,6 +62,7 @@ public:
     
     int add_chain(std::string table, std::string chain);
     int add_rule(struct rule conditions, std::string table, std::string chain, unsigned int index);
+    int del_rule_by_index(std::string table, std::string chain, unsigned int index);
     int del_rule(struct rule conditions, std::string table, std::string chain);
     int change_policy(std::string table, std::string chain, uint8_t policy);
     std::pair<std::map<unsigned int, struct rule>, uint8_t> print_rules(std::string table, std::string chain);

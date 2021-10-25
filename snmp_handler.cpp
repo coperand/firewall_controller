@@ -499,20 +499,20 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         for(unsigned int j = 0; j < request->requestvb->val_len; j++)
                             action += (request->requestvb->val.string[j] & 0x000000FF) << (8 * j);
                         
-                        if(action == 0)
-                            reinterpret_cast<struct rule*>(data_context)->action = "UNKNOWN";
                         if(action == 1)
                             reinterpret_cast<struct rule*>(data_context)->action = "ACCEPT";
-                        if(action == 2)
+                        else if(action == 2)
                             reinterpret_cast<struct rule*>(data_context)->action = "DROP";
-                        if(action == 3)
+                        else if(action == 3)
                             reinterpret_cast<struct rule*>(data_context)->action = "REJECT";
-                        if(action == 4)
+                        else if(action == 4)
                             reinterpret_cast<struct rule*>(data_context)->action = "SNAT";
-                        if(action == 5)
+                        else if(action == 5)
                             reinterpret_cast<struct rule*>(data_context)->action = "DNAT";
-                        if(action == 6)
+                        else if(action == 6)
                             reinterpret_cast<struct rule*>(data_context)->action = "REJECT";
+                        else
+                            reinterpret_cast<struct rule*>(data_context)->action = "UNKNOWN";
                         
                         break;
                     }
@@ -580,9 +580,8 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                             netsnmp_set_request_error(reqinfo, request, result);
                         break;
                     }
-                    
-                    break;
                 }
+                break;
             }
         }
     }

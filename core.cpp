@@ -70,11 +70,11 @@ int Core::del_rule(unsigned int index)
     
     int result = 0;
     if(index < 250)
-        result = instance_pointer->iptc.del_rule(rules[index], "nat", "fcDNAT");
+        result = instance_pointer->iptc.del_rule_by_index("nat", "fcDNAT", index / 2 - 1);
     else if(index > 250 && index < 750)
-        result = instance_pointer->iptc.del_rule(rules[index], "mangle", "fcFILTERING");
+        result = instance_pointer->iptc.del_rule_by_index("mangle", "fcFILTERING", (index - 250) / 2 - 1);
     else if(index > 750)
-        result = instance_pointer->iptc.del_rule(rules[index], "nat", "fcSNAT");
+        result = instance_pointer->iptc.del_rule_by_index("nat", "fcSNAT", (index - 750) / 2 - 1);
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     

@@ -38,6 +38,35 @@ int IpTc::add_chain(string table, string chain)
     return 0;
 }
 
+int IpTc::del_rule_by_index(string table, string chain, unsigned int index)
+{
+    //Инициализируем таблицу
+    struct xtc_handle *h = iptc_init(table.data());
+    if(!h)
+    {
+        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        return -1;
+    }
+    
+    if(!iptc_delete_num_entry(chain.data(), index, h))
+    {
+        printf("Failed to delete entry from netfilter: %s\n", iptc_strerror(errno));
+        iptc_free(h);
+        return -1;
+    }
+    
+    
+    if(!iptc_commit(h))
+    {
+        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        iptc_free(h);
+        return -1;
+    }
+    
+    iptc_free(h);
+    return 0;
+}
+
 int IpTc::del_rule(struct rule conditions, string table, string chain)
 {
     //Инициализируем таблицу
@@ -201,7 +230,7 @@ int IpTc::del_rule(struct rule conditions, string table, string chain)
         {
             if(!iptc_delete_num_entry(chain.data(), i, h))
             {
-                printf("Failed to delete entry from netfilter: %s", iptc_strerror(errno));
+                printf("Failed to delete entry from netfilter: %s\n", iptc_strerror(errno));
                 iptc_free(h);
                 return -1;
             }
