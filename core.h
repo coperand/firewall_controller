@@ -10,7 +10,7 @@
 class Core
 {
 public:
-    Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold);
+    Core(uint8_t refresh_timeout, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold);
     ~Core();
     
     static int add_rule(unsigned int index);

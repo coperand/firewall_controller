@@ -13,9 +13,8 @@ map<unsigned int, struct event>* SnmpHandler::events_container = NULL;
 map<unsigned int, struct event>::iterator* SnmpHandler::events_it = NULL;
 uint8_t* SnmpHandler::level = NULL;
 
-SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
-                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy,
-                                map<unsigned int, struct event>* events_container, map<unsigned int, struct event>::iterator* events_it, uint8_t* level)
+SnmpHandler::SnmpHandler(map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it, int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t),
+                            uint8_t* policy, map<unsigned int, struct event>* events_container, map<unsigned int, struct event>::iterator* events_it, uint8_t* level)
 {
     //Задаем рабочие значения статическим переменным
     this->container = container;
@@ -37,8 +36,8 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     init_snmp("Graduation_snmp");
     
     //Регистрируем обработчики для значений, за которые мы отвечаем
-    init_table(table_oid, oid_len, table_name);
-    init_policy(table_oid, oid_len, table_name);
+    init_table();
+    init_policy();
     init_a_table();
     init_level();
 }
@@ -131,13 +130,15 @@ void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int co
 }
 
 //Функция регистрации обработчика для таблицы правил
-void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_name)
+void SnmpHandler::init_table()
 {
+    oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1};
+    
     netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
-    netsnmp_handler_registration *my_handler = netsnmp_create_handler_registration(table_name.data(),
+    netsnmp_handler_registration *my_handler = netsnmp_create_handler_registration("fcRules",
                                                 request_handler,
                                                 table_oid,
-                                                oid_len / sizeof(oid),
+                                                sizeof(table_oid) / sizeof(oid),
                                                 HANDLER_CAN_RWRITE);
     netsnmp_iterator_info *iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
     
@@ -189,10 +190,10 @@ void SnmpHandler::init_a_table()
 }
 
 //Функция регистрации обработчика для поля fcPolicy
-void SnmpHandler::init_policy(oid* table_oid, unsigned int oid_len, string table_name)
+void SnmpHandler::init_policy()
 {
-    table_oid[oid_len / sizeof(oid) - 1] += 1;
-    netsnmp_register_scalar( netsnmp_create_handler_registration((table_name + string("Policy")).data(), policy_request_handler, table_oid, oid_len / sizeof(oid), HANDLER_CAN_RWRITE) );
+    oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 2};
+    netsnmp_register_scalar( netsnmp_create_handler_registration("fcPolicy", policy_request_handler, table_oid, sizeof(table_oid) / sizeof(oid), HANDLER_CAN_RWRITE) );
 }
 
 //Функция регистрации обработчика для поля fcAControl

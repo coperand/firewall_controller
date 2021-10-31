@@ -11,10 +11,9 @@ map<unsigned int, struct event>::iterator Core::events_it = Core::events.begin()
 uint8_t Core::audit_lvl = 0;
 Logger* Core::log_ptr = NULL;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &events_it, &audit_lvl, audit_threshold}, iptc{&log},
-                                                                                                        snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy,
-                                                                                                             &events, &events_it, &audit_lvl},
-                                                                                                        db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
+Core::Core(uint8_t refresh_timeout, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &events_it, &audit_lvl, audit_threshold}, iptc{&log},
+                                                                                                             snmp{&rules, &rules_it, add_rule, del_rule, change_policy, &policy, &events, &events_it, &audit_lvl},
+                                                                                                             db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
 {
     instance_pointer = this;
     rules_it = rules.begin();

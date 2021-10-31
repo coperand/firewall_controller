@@ -54,9 +54,8 @@ class SnmpHandler
 {
 public:
     SnmpHandler() = delete;
-    SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name, std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it,
-                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy,
-                                    std::map<unsigned int, struct event>* events_container, std::map<unsigned int, struct event>::iterator* events_it, uint8_t* level);
+    SnmpHandler(std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it, int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t),
+                                                                    uint8_t* policy, std::map<unsigned int, struct event>* events_container, std::map<unsigned int, struct event>::iterator* events_it, uint8_t* level);
     ~SnmpHandler();
 private:
     //Переменные для работы с контейнером
@@ -83,9 +82,9 @@ private:
     static void* create_a_data_context(netsnmp_variable_list *index_data, int column);
     
     //Функции инициализации обработчиков запросов
-    static void init_table(oid* table_oid, unsigned int oid_len, std::string table_name);
+    static void init_table();
     static void init_a_table();
-    static void init_policy(oid* table_oid, unsigned int oid_len, std::string table_name);
+    static void init_policy();
     static void init_level();
     
     //Функции обработки запросов
