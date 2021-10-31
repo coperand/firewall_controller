@@ -7,7 +7,7 @@ IMPORTS
     INTEGER, OCTET STRING, OBJECT IDENTIFIER,
     IpAddress
         FROM SNMPv2-SMI
-    DisplayString, RowStatus
+    DisplayString, RowStatus, DateAndTime
         FROM SNMPv2-TC;
 
 firewallController MODULE-IDENTITY
@@ -239,5 +239,84 @@ fcPolicy OBJECT-TYPE
     DESCRIPTION
             "Default action"
     ::= { firewallController 2  }
+
+
+auditEventsTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF auditEventsEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { firewallController 3 }
+
+auditEventsEntry OBJECT-TYPE
+    SYNTAX     auditEventsEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    INDEX      { fcIndex }
+    ::= { auditEventsTable 1 }
+
+auditEventsEntry ::= SEQUENCE {
+    fcAIndex           Unsigned32,
+    fcALevel           INTEGER,
+    fcAMessage         OCTET STRING,
+    fcADate            DateAndTime
+}
+
+fcAIndex OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "Entry index"
+    ::= { auditEventsEntry 1 }
+
+fcALevel OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        none(0),
+                        easy(1),
+                        medium(2),
+                        hard(3)
+                       }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Audit event level"
+    ::= { auditEventsEntry 2 }
+
+fcAMessage OBJECT-TYPE
+    SYNTAX     OCTET STRING
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Audit event message"
+    ::= { auditEventsEntry 3 }
+
+fcADate OBJECT-TYPE
+    SYNTAX     DateAndTime
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Audit event timestamp"
+    ::= { auditEventsEntry 4 }
+
+
+fcAControl OBJECT-TYPE
+    SYNTAX     INTEGER
+                       {
+                        none(0),
+                        easy(1),
+                        medium(2),
+                        hard(3)
+                       }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+            "Audit level controlling"
+    ::= { firewallController 4  }
+
 
 END

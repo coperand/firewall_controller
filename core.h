@@ -34,5 +34,6 @@ private:
     static std::map<unsigned int, struct rule>::iterator rules_it;
     static uint8_t policy;
     static std::map<unsigned int, struct event> events;
+    static std::map<unsigned int, struct event>::iterator events_it;
     static uint8_t audit_lvl;
 };

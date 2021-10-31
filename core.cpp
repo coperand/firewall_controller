@@ -6,11 +6,13 @@ Core* Core::instance_pointer = NULL;
 map<unsigned int, struct rule> Core::rules = {};
 map<unsigned int, struct rule>::iterator Core::rules_it = Core::rules.begin();
 uint8_t Core::policy = 1;
-map<unsigned int, struct event> Core::events;
+map<unsigned int, struct event> Core::events = {};
+map<unsigned int, struct event>::iterator Core::events_it = Core::events.begin();
 uint8_t Core::audit_lvl = 0;
 
 Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &audit_lvl, audit_threshold}, iptc{&log},
-                                                                                                        snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy, &log},
+                                                                                                        snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy, &log,
+                                                                                                             &events, &events_it, &audit_lvl},
                                                                                                         db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
 {
     instance_pointer = this;

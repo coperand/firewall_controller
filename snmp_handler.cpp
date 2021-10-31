@@ -10,9 +10,13 @@ int (*SnmpHandler::del_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::policy_callback)(uint8_t policy) = NULL;
 uint8_t* SnmpHandler::policy = NULL;
 Logger* SnmpHandler::log = NULL;
+map<unsigned int, struct event>* SnmpHandler::events_container = NULL;
+map<unsigned int, struct event>::iterator* SnmpHandler::events_it = NULL;
+uint8_t* SnmpHandler::level = NULL;
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
-                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log)
+                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log,
+                                map<unsigned int, struct event>* events_container, map<unsigned int, struct event>::iterator* events_it, uint8_t* level)
 {
     //Задаем рабочие значения статическим переменным
     this->container = container;
@@ -22,6 +26,9 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     this->policy_callback = policy_callback;
     this->policy = policy;
     this->log = log;
+    this->events_container = events_container;
+    this->events_it = events_it;
+    this->level = level;
     
     //Устанавливаем роль программы как суб-агента
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
@@ -34,6 +41,8 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     //Регистрируем обработчики для значений, за которые мы отвечаем
     init_table(table_oid, oid_len, table_name);
     init_policy(table_oid, oid_len, table_name);
+    init_a_table();
+    init_level();
 }
 
 SnmpHandler::~SnmpHandler()
@@ -44,7 +53,7 @@ SnmpHandler::~SnmpHandler()
     SOCK_CLEANUP;
 }
 
-//Функция получения начальной точки в контейнере
+//Функции получения начальной точки в контейнере
 netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(!container->size())
@@ -63,7 +72,25 @@ netsnmp_variable_list* SnmpHandler::get_first_data_point(void **my_loop_context,
     return put_index_data;
 }
 
-//Функция получения следующей точки в контейнере
+netsnmp_variable_list* SnmpHandler::get_a_first_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
+{
+    if(!events_container->size())
+        return NULL;
+    
+    *events_it = events_container->begin();
+    
+    *my_loop_context = events_it;
+    *my_data_context = &(*events_it)->second;
+
+    netsnmp_variable_list *vptr = put_index_data;
+    
+    snmp_set_var_value(vptr, &(*events_it)->first, sizeof((*events_it)->first));
+    vptr = vptr->next_variable;
+
+    return put_index_data;
+}
+
+//Функции получения следующей точки в контейнере
 netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
 {
     if(++(*it) == container->end())
@@ -80,6 +107,22 @@ netsnmp_variable_list* SnmpHandler::get_next_data_point(void **my_loop_context, 
     return put_index_data;
 }
 
+netsnmp_variable_list* SnmpHandler::get_a_next_data_point(void **my_loop_context, void **my_data_context, netsnmp_variable_list *put_index_data, netsnmp_iterator_info *mydata)
+{
+    if(++(*events_it) == events_container->end())
+        return NULL;
+    
+    *my_loop_context = events_it;
+    *my_data_context = &(*events_it)->second;
+
+    netsnmp_variable_list *vptr = put_index_data;
+    
+    snmp_set_var_value(vptr, &(*events_it)->first, sizeof((*events_it)->first));
+    vptr = vptr->next_variable;
+
+    return put_index_data;
+}
+
 //Функция создания нового элемента в контейнере
 void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int column)
 {
@@ -89,7 +132,7 @@ void* SnmpHandler::create_data_context(netsnmp_variable_list *index_data, int co
     return &(*container)[(*index_data->val.integer)];
 }
 
-//Функция регистрации обработчика для таблица
+//Функция регистрации обработчика для таблицы правил
 void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_name)
 {
     netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
@@ -117,11 +160,48 @@ void SnmpHandler::init_table(oid* table_oid, unsigned int oid_len, string table_
     netsnmp_register_table_iterator(my_handler, iinfo);
 }
 
+//Функция регистрации обработчика для таблицы событий аудита
+void SnmpHandler::init_a_table()
+{
+    oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 3};
+    
+    netsnmp_table_registration_info *table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
+    netsnmp_handler_registration *my_handler = netsnmp_create_handler_registration("faA Table",
+                                                a_request_handler,
+                                                table_oid,
+                                                sizeof(table_oid) / sizeof(oid),
+                                                HANDLER_CAN_RONLY);
+    netsnmp_iterator_info *iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
+    
+    if (!my_handler || !table_info || !iinfo)
+        return;
+
+    netsnmp_table_helper_add_indexes(table_info,
+                                  ASN_UNSIGNED,
+                             0);
+    
+    table_info->min_column = 2;
+    table_info->max_column = 4;
+    
+    iinfo->get_first_data_point = get_a_first_data_point;
+    iinfo->get_next_data_point = get_a_next_data_point;
+    iinfo->table_reginfo = table_info;
+    
+    netsnmp_register_table_iterator(my_handler, iinfo);
+}
+
 //Функция регистрации обработчика для поля fcPolicy
 void SnmpHandler::init_policy(oid* table_oid, unsigned int oid_len, string table_name)
 {
     table_oid[oid_len / sizeof(oid) - 1] += 1;
     netsnmp_register_scalar( netsnmp_create_handler_registration((table_name + string("Policy")).data(), policy_request_handler, table_oid, oid_len / sizeof(oid), HANDLER_CAN_RWRITE) );
+}
+
+//Функция регистрации обработчика для поля fcAControl
+void SnmpHandler::init_level()
+{
+    oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 4};
+    netsnmp_register_scalar( netsnmp_create_handler_registration("fcAControl", level_request_handler, table_oid, sizeof(table_oid) / sizeof(oid), HANDLER_CAN_RWRITE) );
 }
 
 //Обработчик запросов к таблице
@@ -591,6 +671,59 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
     return SNMP_ERR_NOERROR;
 }
 
+int SnmpHandler::a_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+{
+    for(netsnmp_request_info *request = requests; request; request = request->next)
+    {
+        if (request->processed != 0)
+            continue;
+        
+        void *data_context = NULL;
+        
+        netsnmp_table_request_info *table_info = netsnmp_extract_table_info(request);
+        if (table_info == NULL)
+            continue;
+        
+        switch (reqinfo->mode) {
+        case MODE_GET:
+            data_context = netsnmp_extract_iterator_context(request);
+            if (data_context == NULL)
+            {
+                netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
+                continue;
+            }
+            break;
+        }
+
+        switch(reqinfo->mode)
+        {
+            case MODE_GET:
+            {
+                switch(static_cast<audit_columns>(table_info->colnum))
+                {
+                    case audit_columns::level:
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct event*>(data_context)->level), ASN_INTEGER, request, reqinfo);
+                        break;
+                    
+                    case audit_columns::message:
+                        get_char(&reinterpret_cast<struct event*>(data_context)->message, request, reqinfo);
+                        break;
+                    
+                    case audit_columns::date:
+                        snmp_set_var_typed_value(request->requestvb, ASN_OCTET_STR, &reinterpret_cast<struct event*>(data_context)->time, sizeof(struct dateAndTime));
+                        break;
+                    
+                    default:
+                        netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
+                }
+                break;
+            }
+        }
+    }
+    
+    return SNMP_ERR_NOERROR;
+}
+
 //Обработчик запросов к полю fcPolicy
 int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
 {
@@ -618,6 +751,37 @@ int SnmpHandler::policy_request_handler(netsnmp_mib_handler *handler, netsnmp_ha
             if(result)
                 netsnmp_set_request_error(reqinfo, requests, result);
             
+            break;
+        }
+    }
+
+    return SNMP_ERR_NOERROR;
+}
+
+//Обработчик запросов к полю fcAControl
+int SnmpHandler::level_request_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+{
+    switch(reqinfo->mode)
+    {
+        case MODE_GET:
+        {
+            snmp_set_var_typed_value(requests->requestvb, ASN_INTEGER, level, sizeof(*level));
+            break;
+        }
+
+        case MODE_SET_RESERVE2:
+        {
+            if (requests->requestvb->type != ASN_INTEGER)
+                netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_WRONGTYPE);
+            
+            if(*requests->requestvb->val.integer != 0 && *requests->requestvb->val.integer != 1 && *requests->requestvb->val.integer != 2 && *requests->requestvb->val.integer != 3)
+                netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_INCONSISTENTVALUE);
+            break;
+        }
+
+        case MODE_SET_ACTION:
+        {
+            *level = requests->requestvb->val.string[0] & 0x000000FF;
             break;
         }
     }
