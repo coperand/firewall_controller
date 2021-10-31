@@ -9,13 +9,12 @@ int (*SnmpHandler::add_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::del_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::policy_callback)(uint8_t policy) = NULL;
 uint8_t* SnmpHandler::policy = NULL;
-Logger* SnmpHandler::log = NULL;
 map<unsigned int, struct event>* SnmpHandler::events_container = NULL;
 map<unsigned int, struct event>::iterator* SnmpHandler::events_it = NULL;
 uint8_t* SnmpHandler::level = NULL;
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
-                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log,
+                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy,
                                 map<unsigned int, struct event>* events_container, map<unsigned int, struct event>::iterator* events_it, uint8_t* level)
 {
     //Задаем рабочие значения статическим переменным
@@ -25,7 +24,6 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     this->del_callback = del_callback;
     this->policy_callback = policy_callback;
     this->policy = policy;
-    this->log = log;
     this->events_container = events_container;
     this->events_it = events_it;
     this->level = level;
@@ -774,7 +772,7 @@ int SnmpHandler::level_request_handler(netsnmp_mib_handler *handler, netsnmp_han
             if (requests->requestvb->type != ASN_INTEGER)
                 netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_WRONGTYPE);
             
-            if(*requests->requestvb->val.integer != 0 && *requests->requestvb->val.integer != 1 && *requests->requestvb->val.integer != 2 && *requests->requestvb->val.integer != 3)
+            if(*requests->requestvb->val.integer != 0 && *requests->requestvb->val.integer != 1 && *requests->requestvb->val.integer != 2)
                 netsnmp_set_request_error(reqinfo, requests, SNMP_ERR_INCONSISTENTVALUE);
             break;
         }

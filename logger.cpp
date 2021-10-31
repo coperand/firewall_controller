@@ -2,7 +2,8 @@
 
 using namespace std;
 
-Logger::Logger(map<unsigned int, struct event>* events, uint8_t* audit_lvl, unsigned int threshold):events{events}, audit_lvl{audit_lvl}, threshold{threshold}
+Logger::Logger(map<unsigned int, struct event>* events, map<unsigned int, struct event>::iterator* events_it, uint8_t* audit_lvl, unsigned int threshold) : events{events}, events_it{events_it}, audit_lvl{audit_lvl},
+                                                                                                                                                                threshold{threshold}
 {
     //Проверяем, что необходимые для работы указатели заполнены
     if(!events)
@@ -42,4 +43,6 @@ void Logger::print(uint8_t level, string message)
         while(events->size() > threshold / 2)
             events->erase(events->begin());
     }
+    
+    *events_it = events->end();
 }

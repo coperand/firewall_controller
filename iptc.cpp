@@ -19,7 +19,7 @@ int IpTc::add_chain(string table, string chain)
     struct xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
@@ -29,7 +29,33 @@ int IpTc::add_chain(string table, string chain)
     //Применяем изменения
     if(!iptc_commit(h))
     {
-        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        iptc_free(h);
+        return -1;
+    }
+    
+    //Освобождаем ресурсы
+    iptc_free(h);
+    return 0;
+}
+
+int IpTc::flush_chain(string table, string chain)
+{
+    //Инициализируем таблицу
+    struct xtc_handle *h = iptc_init(table.data());
+    if(!h)
+    {
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        return -1;
+    }
+    
+    //Очищаем цепочку
+    iptc_flush_entries(chain.data(), h);
+    
+    //Применяем изменения
+    if(!iptc_commit(h))
+    {
+        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -45,13 +71,13 @@ int IpTc::del_rule_by_index(string table, string chain, unsigned int index)
     struct xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
     if(!iptc_delete_num_entry(chain.data(), index, h))
     {
-        printf("Failed to delete entry from netfilter: %s\n", iptc_strerror(errno));
+        log->print(1, string("Failed to delete entry from netfilter: ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -59,189 +85,7 @@ int IpTc::del_rule_by_index(string table, string chain, unsigned int index)
     
     if(!iptc_commit(h))
     {
-        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
-        iptc_free(h);
-        return -1;
-    }
-    
-    iptc_free(h);
-    return 0;
-}
-
-int IpTc::del_rule(struct rule conditions, string table, string chain)
-{
-    //Инициализируем таблицу
-    struct xtc_handle *h = iptc_init(table.data());
-    if(!h)
-    {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
-        return -1;
-    }
-    
-    //Проверяем наличие цепочки
-    if(!iptc_is_chain(chain.data(), h))
-    {
-        printf("No %s chain found\n", chain.data());
-        iptc_free(h);
-        return -1;
-    }
-    
-    bool found;
-    do
-    {
-        int i = 0;
-        found = false;
-        for (const struct ipt_entry* e = iptc_first_rule(chain.data(), h); e; e = iptc_next_rule(e, h), i++)
-        {
-            if((e->ip.invflags & 0x5B) != (conditions.inv_flags & 0x5B))
-                continue;
-            if (conditions.state != 0)
-            {
-                bool match_found = false;
-                struct xt_entry_match* match = NULL;
-                for(unsigned int j = sizeof(struct ipt_entry); j < e->target_offset; j += match->u.match_size)
-                {
-                    match = (struct xt_entry_match *)((char *)e + j);
-                    
-                    if(strcmp(match->u.user.name, "conntrack") != 0)
-                        continue;
-                    
-                    if( ((const struct xt_conntrack_mtinfo3 *)match->data)->state_mask != conditions.state  || ((const struct xt_conntrack_mtinfo3 *)match->data)->invert_flags != (conditions.inv_flags & 0x04) )
-                        continue;
-                    
-                    match_found = true;
-                    break;
-                }
-                
-                if(!match_found)
-                    continue;
-            }
-            if (conditions.sport.min != 0 || conditions.sport.max != 0 || conditions.dport.min != 0 || conditions.dport.max != 0)
-            {
-                bool match_found = false;
-                struct xt_entry_match* match = NULL;
-                for(unsigned int j = sizeof(struct ipt_entry); j < e->target_offset; j += match->u.match_size)
-                {
-                    match = (struct xt_entry_match *)((char *)e + j);
-                    
-                    int proto = 0;
-                    if (strcmp(match->u.user.name, "tcp") == 0)
-                        proto = 6;
-                    else if (strcmp(match->u.user.name, "udp") == 0)
-                        proto = 17;
-                    else
-                        continue;
-                    
-                    if(proto == 6 || proto == 17)
-                    {
-                        if(conditions.sport.min != 0 || conditions.sport.max != 0)
-                        {
-                            if( (((struct ipt_tcp *)match->data)->invflags & 0x01) != (conditions.inv_flags & 0x20) )
-                                continue;
-                            
-                            if (conditions.sport.min != ((proto == 6) ? ((struct ipt_tcp *)match->data)->spts[0] : ((struct ipt_udp *)match->data)->spts[0]) ||
-                                conditions.sport.max != ((proto == 6) ? ((struct ipt_tcp *)match->data)->spts[1] : ((struct ipt_udp *)match->data)->spts[1]))
-                               continue;
-                        }
-                        if(conditions.dport.min != 0 || conditions.dport.max != 0)
-                        {
-                            if( ((((struct ipt_tcp *)match->data)->invflags >> 1) & 0x01) != (conditions.inv_flags & 0x80) )
-                                continue;
-                            
-                            if (conditions.dport.min != ((proto == 6) ? ((struct ipt_tcp *)match->data)->dpts[0] : ((struct ipt_udp *)match->data)->dpts[0]) ||
-                                conditions.dport.max != ((proto == 6) ? ((struct ipt_tcp *)match->data)->dpts[1] : ((struct ipt_udp *)match->data)->dpts[1]))
-                                continue;
-                        }
-                         
-                        match_found = true;
-                        break;
-                    }
-                }
-                if(!match_found)
-                    continue;
-            }
-            if (conditions.src_ip && conditions.src_ip != e->ip.src.s_addr)
-                continue;
-            if (conditions.dst_ip && conditions.dst_ip != e->ip.dst.s_addr)
-                continue;
-            if (conditions.src_mask && conditions.src_mask != e->ip.smsk.s_addr)
-                continue;
-            if (conditions.dst_mask && conditions.dst_mask != e->ip.dmsk.s_addr)
-                continue;
-            if (conditions.in_if.size() && conditions.in_if != string(e->ip.iniface))
-                continue;
-            if (conditions.out_if.size() && conditions.out_if != string(e->ip.outiface))
-                continue;
-            if ((conditions.proto == protocol::tcp && e->ip.proto != IPPROTO_TCP) || (conditions.proto == protocol::udp && e->ip.proto != IPPROTO_UDP) ||
-                          (conditions.proto == protocol::icmp && e->ip.proto != IPPROTO_ICMP))
-                continue;
-            if (conditions.action.size() && conditions.action != string(iptc_get_target(e, h)))
-                    continue;
-            if (conditions.action == string("SNAT"))
-            {
-                struct ipt_entry_target *t = (struct ipt_entry_target *) ((uint8_t*)e + e->target_offset);
-                struct ip_nat_multi_range *mr = (struct ip_nat_multi_range *) ((void *) &t->data);
-
-                //TODO: Рассмотреть другие случаи
-                if(mr->rangesize != 1)
-                    continue;
-
-                struct ip_nat_range *r = mr->range;
-                struct ip_nat_range range = parse_range(conditions.action_params);
-                if (r->flags != range.flags
-                       || r->min_ip != range.min_ip
-                       || r->max_ip != range.max_ip
-                       || r->min.all != range.min.all
-                       || r->max.all != range.max.all)
-                    continue;
-            }
-            if (conditions.action == string("DNAT"))
-            {
-                struct ipt_entry_target *t = (struct ipt_entry_target *) ((uint8_t*)e + e->target_offset);
-                struct ip_nat_multi_range *mr = (struct ip_nat_multi_range *) ((void *) &t->data);
-
-                //TODO: Рассмотреть другие случаи
-                if(mr->rangesize != 1)
-                    continue;
-                
-                struct ip_nat_range got_range = mr->range[0];
-                
-                //Костыль?
-                if(got_range.min_ip == 0x00 && got_range.max_ip == 0x00)
-                {
-                    struct ip_nat_range temp_range = {};
-                    memcpy(&temp_range, &mr->range[1], sizeof(struct ip_nat_range));
-                    got_range.max_ip = temp_range.flags;
-                    got_range.min_ip = got_range.flags;
-                }
-                
-                struct ip_nat_range range = parse_range(conditions.action_params);
-                if (got_range.min_ip != range.min_ip
-                       || got_range.max_ip != range.max_ip
-                       || got_range.min.all != range.min.all
-                       || got_range.max.all != range.max.all)
-                    continue;
-            }
-            
-            found = true;
-            break;
-        }
-
-        if(found)
-        {
-            if(!iptc_delete_num_entry(chain.data(), i, h))
-            {
-                printf("Failed to delete entry from netfilter: %s\n", iptc_strerror(errno));
-                iptc_free(h);
-                return -1;
-            }
-        }
-    
-    } while(found);
-    
-    if(!iptc_commit(h))
-    {
-        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -256,7 +100,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     struct ipt_entry* chain_entry = (struct ipt_entry*) calloc(1, sizeof (struct ipt_entry));
     if(!chain_entry)
     {
-        printf("Failed to allocate memory for struct ipt_entry in add_rule function\n");
+        log->print(1, string("Failed to allocate memory for struct ipt_entry in add_rule function"));
         return -1;
     }
     
@@ -338,7 +182,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -351,7 +195,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Проверяем наличие цепочки
     if(!iptc_is_chain(chain.data(), h))
     {
-        printf("No %s chain found\n", chain.data());
+        log->print(1, string("No ") + chain + string(" chain found"));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -367,7 +211,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     strncpy(labelit, chain.data(), chain.size());
     if(!iptc_insert_entry(labelit, chain_entry, index, h))
     {
-        printf("Failed to add entry to netfilter: %s\n", iptc_strerror(errno));
+        log->print(1, string("Failed to add entry to netfilter: ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -381,7 +225,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Применяем внесенные изменения
     if (!iptc_commit(h))
     {
-        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -606,13 +450,13 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
     {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
     if(!iptc_is_chain(chain.data(), h))
     {
-        printf("No %s chain found\n", chain.data());
+        log->print(1, string("No ") + chain + string(" chain found"));
         iptc_free(h);
         return -1;
     }
@@ -627,7 +471,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
             policy_str = "ACCEPT";
             break;
         default:
-            printf("Unknown policy code - %u\n", policy);
+            log->print(1, string("Unknown policy code - ")  + to_string(policy));
             iptc_free(h);
             return -1;
     }
@@ -635,7 +479,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     struct ipt_counters counters;
     if (!iptc_set_policy(chain.data(), policy_str.data(), &counters, h))
     {
-        printf("Failed to set %s policy to %s chain: %s\n", policy_str.data(), chain.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to set ")  + to_string(policy) + string(" policy to ") + chain + string(" chain"));
         iptc_free(h);
         return -1;
     }
@@ -643,7 +487,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     //Применяем внесенные изменения
     if (!iptc_commit(h))
     {
-        printf("Failed to commit to %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -657,12 +501,12 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
     {
-        printf("Failed to initialize %s table: %s\n", table.data(), iptc_strerror(errno));
+        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return {};
     }
     if(!iptc_is_chain(chain.data(), h))
     {
-        printf("No %s chain found\n", chain.data());
+        log->print(1, string("No ") + chain + string(" chain found"));
         return {};
     }
     
@@ -678,7 +522,7 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
             policy = 1;
         else
         {
-            printf("Failed to interpret %s policy\n", policy_str.data());
+            log->print(1, string("Failed to interpret ")  + to_string(policy) + string(" policy"));
             return {};
         }
     }
@@ -712,13 +556,10 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
         condition.action = string(iptc_get_target(it, h));
         if(condition.action == "DNAT")
         {
-            //TODO: Обработка нескольких диапазонов (не только здесь)
-            
             struct ipt_natinfo *info = (struct ipt_natinfo *)((char*)it + it->target_offset);
             struct ip_nat_range range = {};
             memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));
             
-            //Костыль?
             if(range.min_ip == 0x00 && range.max_ip == 0x00)
             {
                 struct ip_nat_range temp_range = {};
@@ -731,8 +572,6 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
         }
         else if(condition.action == "SNAT")
         {
-            //TODO: Обработка нескольких диапазонов (не только здесь)
-            
             struct ipt_natinfo *info = (struct ipt_natinfo *)((char*)it + it->target_offset);
             struct ip_nat_range range = {};
             memcpy(&range, &info->mr.range[0], sizeof(struct ip_nat_range));

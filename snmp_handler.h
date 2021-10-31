@@ -55,12 +55,10 @@ class SnmpHandler
 public:
     SnmpHandler() = delete;
     SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name, std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it,
-                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log,
+                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy,
                                     std::map<unsigned int, struct event>* events_container, std::map<unsigned int, struct event>::iterator* events_it, uint8_t* level);
     ~SnmpHandler();
 private:
-    static Logger* log;
-    
     //Переменные для работы с контейнером
     static std::map<unsigned int, struct rule>* container;
     static std::map<unsigned int, struct rule>::iterator* it;

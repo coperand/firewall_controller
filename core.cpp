@@ -10,8 +10,8 @@ map<unsigned int, struct event> Core::events = {};
 map<unsigned int, struct event>::iterator Core::events_it = Core::events.begin();
 uint8_t Core::audit_lvl = 0;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &audit_lvl, audit_threshold}, iptc{&log},
-                                                                                                        snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy, &log,
+Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &      events_it, &audit_lvl, audit_threshold}, iptc{&log},
+                                                                                                        snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy,
                                                                                                              &events, &events_it, &audit_lvl},
                                                                                                         db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
 {
@@ -22,17 +22,17 @@ Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const
     struct rule conditions = {};
     iptc.add_chain("nat", "fcDNAT");
     conditions.action = string("fcDNAT");
-    iptc.del_rule(conditions, "nat", "PREROUTING");
+    iptc.flush_chain("nat", "PREROUTING");
     iptc.add_rule(conditions, "nat", "PREROUTING", 0);
     
     iptc.add_chain("mangle", "fcFILTERING");
     conditions.action = string("fcFILTERING");
-    iptc.del_rule(conditions, "mangle", "PREROUTING");
+    iptc.flush_chain("mangle", "PREROUTING");
     iptc.add_rule(conditions, "mangle", "PREROUTING", 0);
     
     iptc.add_chain("nat", "fcSNAT");
     conditions.action = string("fcSNAT");
-    iptc.del_rule(conditions, "nat", "POSTROUTING");
+    iptc.flush_chain("nat", "POSTROUTING");
     iptc.add_rule(conditions, "nat", "POSTROUTING", 0);
 }
 
