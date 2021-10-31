@@ -36,4 +36,7 @@ private:
     static std::map<unsigned int, struct event> events;
     static std::map<unsigned int, struct event>::iterator events_it;
     static uint8_t audit_lvl;
+    static Logger* log_ptr;
+    
+    static std::string serialize_rule_to_str(unsigned int index);
 };

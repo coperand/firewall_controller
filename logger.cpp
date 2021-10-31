@@ -27,15 +27,16 @@ void Logger::print(uint8_t level, string message)
     dateAndTime date;
     time_t t = time(NULL);
     struct tm *local = localtime(&t);
-    date.year = htons(local->tm_year);
-    date.month = local->tm_mon;
+    date.year = htons(1900 + local->tm_year);
+    date.month = local->tm_mon + 1;
     date.day = local->tm_mday;
     date.hour = local->tm_hour;
     date.minute = local->tm_min;
     date.second = local->tm_sec;
     
     //Добавляем в список
-    (*events)[events->cbegin()->first + 1] = {level, message, date};
+    unsigned int next = (events->rbegin() == events->rend()) ? 1 : (events->rbegin()->first + 1);
+    (*events)[next] = {level, message, date};
     
     //Ротация данных
     if(events->size() > threshold)

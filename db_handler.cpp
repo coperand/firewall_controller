@@ -65,7 +65,7 @@ int DbHandler::write_to_journal(map<unsigned int, struct event>& events)
 
 map<unsigned int, struct event> DbHandler::read_from_journal()
 {
-    map<unsigned int, struct event> result;
+    map<unsigned int, struct event> result = {};
     
     //Считываем данные из таблицы
     char *err = NULL;
@@ -107,7 +107,8 @@ int DbHandler::read_journal_callback(void *data, int argc, char **argv, char **c
         else if(string(colName[i]) == string("second_part"))
             entry.time.second_part = atoi(argv[i]);
     }
-    (*result)[result->cbegin()->first + 1] = entry;
+    unsigned int next = (result->rbegin() == result->rend()) ? 1 : (result->rbegin()->first + 1);
+    (*result)[next] = entry;
     
     return 0;
 }

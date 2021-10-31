@@ -9,8 +9,9 @@ uint8_t Core::policy = 1;
 map<unsigned int, struct event> Core::events = {};
 map<unsigned int, struct event>::iterator Core::events_it = Core::events.begin();
 uint8_t Core::audit_lvl = 0;
+Logger* Core::log_ptr = NULL;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &      events_it, &audit_lvl, audit_threshold}, iptc{&log},
+Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold) : log{&events, &events_it, &audit_lvl, audit_threshold}, iptc{&log},
                                                                                                         snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy,
                                                                                                              &events, &events_it, &audit_lvl},
                                                                                                         db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
@@ -18,6 +19,7 @@ Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const
     instance_pointer = this;
     rules_it = rules.begin();
     events = db.read_from_journal();
+    log_ptr = &log;
     
     struct rule conditions = {};
     iptc.add_chain("nat", "fcDNAT");
@@ -41,6 +43,75 @@ Core::~Core()
     
 }
 
+string Core::serialize_rule_to_str(unsigned int index)
+{
+    string result;
+    
+    struct in_addr ip = {};
+    if(rules[index].src_ip != 0)
+    {
+        ip.s_addr = rules[index].src_ip;
+        result += string("|Src ip|: ") + string(inet_ntoa(ip)) + string(" ");
+    }
+    if(rules[index].src_mask != 0)
+    {
+        ip.s_addr = rules[index].src_mask;
+        result += string("|Src mask|: ") + string(inet_ntoa(ip)) + string(" ");
+    }
+    
+    if(rules[index].dst_ip != 0)
+    {
+        ip.s_addr = rules[index].dst_ip;
+        result += string("|Dst ip|: ") + string(inet_ntoa(ip)) + string(" ");
+    }
+    if(rules[index].dst_mask != 0)
+    {
+        ip.s_addr = rules[index].dst_mask;
+        result += string("|Dst mask|: ") + string(inet_ntoa(ip)) + string(" ");
+    }
+    
+    if(rules[index].in_if.size() != 0)
+        result += string("|In if|: ") + rules[index].in_if + string(" ");
+    if(rules[index].in_if.size() != 0)
+        result += string("|Out if|: ") + rules[index].out_if + string(" ");
+    
+    switch(rules[index].proto)
+    {
+        case protocol::icmp:
+            result += string("|Proto|: icmp") + string(" ");
+            break;
+        case protocol::tcp:
+            result += string("|Proto|: tcp") + string(" ");
+            break;
+        case protocol::udp:
+            result += string("|Proto|: udp") + string(" ");
+            break;
+        default:
+            break;
+    }
+
+    if(rules[index].sport.min != 0 || rules[index].sport.max != 0)
+        result += string("|Src port|: ") + to_string(rules[index].sport.min) + string(" - ") + to_string(rules[index].sport.max) + string(" ");
+    if(rules[index].dport.min != 0 || rules[index].dport.max != 0)
+        result += string("|Dst port|: ") + to_string(rules[index].dport.min) + string(" - ") + to_string(rules[index].dport.max) + string(" ");
+
+    if(rules[index].state != 0)
+    {
+        result += string("|State(s)|: ");
+        if((rules[index].state & 0x01) != 0)
+            result += string("Invalid") + string(" ");
+        if(((rules[index].state >> 1) & 0x01) != 0)
+            result += string("Established") + string(" ");
+        if(((rules[index].state >> 2) & 0x01) != 0)
+            result += string("Related") + string(" ");
+        if(((rules[index].state >> 3) & 0x01) != 0)
+            result += string("New") + string(" ");
+    }
+
+    result += string("|Action|: ") + rules[index].action;
+    return result;
+}
+
 int Core::add_rule(unsigned int index)
 {
     if(index % 2 == 0)
@@ -59,6 +130,8 @@ int Core::add_rule(unsigned int index)
         result = instance_pointer->iptc.add_rule(rules[index], "nat", "fcSNAT", (index == 751) ? 0x00 : (index - 1 - 750) % 2 + 17);
     else
         return SNMP_ERR_INCONSISTENTVALUE;
+    
+    log_ptr->print(2, string("Adding rule: ") + serialize_rule_to_str(index));
     
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
@@ -84,6 +157,8 @@ int Core::del_rule(unsigned int index)
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     
+    log_ptr->print(2, string("Deleting rule: ") + serialize_rule_to_str(index));
+    
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
     return result;
@@ -92,6 +167,8 @@ int Core::del_rule(unsigned int index)
 int Core::change_policy(uint8_t policy)
 {
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
+    
+    log_ptr->print(2, string("Changing policy to ") + to_string(policy));
     
     return instance_pointer->iptc.change_policy("mangle", "PREROUTING", policy);
 }
