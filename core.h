@@ -5,11 +5,12 @@
 #include "iptc.h"
 #include "snmp_handler.h"
 #include "db_handler.h"
+#include "logger.h"
 
 class Core
 {
 public:
-    Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout);
+    Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout, unsigned int audit_threshold);
     ~Core();
     
     static int add_rule(unsigned int index);
@@ -18,6 +19,7 @@ public:
     
     void cycle();
 private:
+    Logger log;
     IpTc iptc;
     SnmpHandler snmp;
     DbHandler db;

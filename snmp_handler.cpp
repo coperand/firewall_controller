@@ -9,9 +9,10 @@ int (*SnmpHandler::add_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::del_callback)(unsigned int index) = NULL;
 int (*SnmpHandler::policy_callback)(uint8_t policy) = NULL;
 uint8_t* SnmpHandler::policy = NULL;
+Logger* SnmpHandler::log = NULL;
 
 SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name, map<unsigned int, struct rule>* container, map<unsigned int, struct rule>::iterator* it,
-                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy)
+                                int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log)
 {
     //Задаем рабочие значения статическим переменным
     this->container = container;
@@ -20,6 +21,7 @@ SnmpHandler::SnmpHandler(oid* table_oid, unsigned int oid_len, string table_name
     this->del_callback = del_callback;
     this->policy_callback = policy_callback;
     this->policy = policy;
+    this->log = log;
     
     //Устанавливаем роль программы как суб-агента
     netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);

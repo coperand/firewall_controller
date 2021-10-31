@@ -2,9 +2,10 @@
 
 using namespace std;
 
-IpTc::IpTc()
+IpTc::IpTc(Logger *log) : log(log)
 {
-
+    if(!log)
+        throw runtime_error("Log is not specified in IpTc");
 }
 
 IpTc::~IpTc()

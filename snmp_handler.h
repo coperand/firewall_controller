@@ -13,6 +13,7 @@
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
 #include "structs.h"
+#include "logger.h"
 
 //Перечисление столбцов таблицы
 enum class columns
@@ -46,9 +47,11 @@ class SnmpHandler
 public:
     SnmpHandler() = delete;
     SnmpHandler(oid* table_oid, unsigned int oid_len, std::string table_name, std::map<unsigned int, struct rule>* container, std::map<unsigned int, struct rule>::iterator* it,
-                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy);
+                                    int (*add_callback)(unsigned int), int (*del_callback)(unsigned int), int (*policy_callback)(uint8_t), uint8_t* policy, Logger *log);
     ~SnmpHandler();
 private:
+    static Logger* log;
+    
     //Переменные для работы с контейнером
     static std::map<unsigned int, struct rule>* container;
     static std::map<unsigned int, struct rule>::iterator* it;
