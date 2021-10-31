@@ -44,3 +44,23 @@ struct rule
     //Флаги инверсии (побитово)
     uint16_t inv_flags = 0x1000;
 };
+
+//Структура для хранения даты/времени в формате SNMP
+struct dateAndTime
+{
+    uint16_t year = 0;
+    uint8_t month = 0;
+    uint8_t day = 0;
+    uint8_t hour = 0;
+    uint8_t minute = 0;
+    uint8_t second = 0;
+    uint8_t second_part = 0;
+};
+
+//Структура события аудита
+struct event
+{
+    uint8_t level = 0;
+    std::string message = {};
+    dateAndTime time = {};
+};

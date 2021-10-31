@@ -22,7 +22,7 @@ pid_t start_program()
     if(!pid)
     {
         oid table_oid[] = {1, 3, 6, 1, 4, 1, 4, 199, 1};
-        Core core(3, table_oid, sizeof(table_oid));
+        Core core(3, table_oid, sizeof(table_oid), "test.db", 5);
     
         core.cycle();
     }

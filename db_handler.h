@@ -8,29 +8,15 @@
 #include <map>
 #include <stdexcept>
 
-struct dateAndTime
-{
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint8_t second_part;
-};
-
-struct event
-{
-    uint8_t level;
-    std::string message;
-    dateAndTime time;
-};
+#include "structs.h"
 
 class DbHandler
 {
 public:
     DbHandler(const char* path);
     ~DbHandler();
+    DbHandler(const DbHandler&) = delete;
+    void operator=(const DbHandler&) = delete;
     
     int write_to_journal(std::map<unsigned int, struct event>& events);
     std::map<unsigned int, struct event> read_from_journal();

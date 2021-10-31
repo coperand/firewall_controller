@@ -5,7 +5,7 @@ PROG_NAME = graduation
 BIN_DIR = binary
 SOURCES = $(wildcard *.cpp)
 FLAGS = -Wall -Weffc++
-LIBS = -lip4tc -lnetsnmp -lnetsnmpagent
+LIBS = -lip4tc -lnetsnmp -lnetsnmpagent -lsqlite3
 
 
 all:

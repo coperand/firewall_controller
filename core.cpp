@@ -6,12 +6,15 @@ Core* Core::instance_pointer = NULL;
 map<unsigned int, struct rule> Core::rules = {};
 map<unsigned int, struct rule>::iterator Core::rules_it = Core::rules.begin();
 uint8_t Core::policy = 1;
+map<unsigned int, struct event> Core::events;
+uint8_t Core::audit_lvl = 0;
 
-Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy},
-                                                                             iptc_timer{}, refresh_timeout{refresh_timeout}
+Core::Core(uint8_t refresh_timeout, oid* table_oid, unsigned int oid_size, const char* db_path, uint8_t db_timeout) : iptc{}, snmp{table_oid, oid_size, "graduationProjectTable", &rules, &rules_it, add_rule, del_rule, change_policy, &policy},
+                                                                                                  db{db_path}, iptc_timer{}, refresh_timeout{refresh_timeout}, db_timer{}, db_timeout{db_timeout}
 {
     instance_pointer = this;
     rules_it = rules.begin();
+    events = db.read_from_journal();
     
     struct rule conditions = {};
     iptc.add_chain("nat", "fcDNAT");
@@ -115,6 +118,12 @@ void Core::cycle()
             
             rules_it = rules.end();
             iptc_timer = chrono::steady_clock::now();
+        }
+        
+        if(chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - db_timer).count() > db_timeout)
+        {
+            db.write_to_journal(events);
+            db_timer = chrono::steady_clock::now();
         }
         
         while(agent_check_and_process(0));
