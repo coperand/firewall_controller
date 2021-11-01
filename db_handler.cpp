@@ -48,7 +48,7 @@ int DbHandler::write_to_journal(map<unsigned int, struct event>& events)
     for(auto event : events)
     {
         char temp[255] = {};
-        sprintf(temp, "INSERT INTO journal(level, message, year, month, day, hour, minute, second, second_part) VALUES(%u, '%s', %u, %u, %u, %u, %u, %u, %u); ", event.second.level, event.second.message.data(),
+        sprintf(temp, "INSERT INTO journal(level, message, year, month, day, hour, minute, second, second_part) VALUES(%u, '%s', %u, %u, %u, %u, %u, %u, %u); ", (uint8_t)event.second.level, event.second.message.data(),
                                                                                                                                     event.second.time.year, event.second.time.month, event.second.time.day, event.second.time.hour,
                                                                                                                                     event.second.time.minute, event.second.time.second, event.second.time.second_part);
         query += string(temp);
@@ -89,7 +89,7 @@ int DbHandler::read_journal_callback(void *data, int argc, char **argv, char **c
         if(string(colName[i]) == string("id"))
             continue;
         else if(string(colName[i]) == string("level"))
-            entry.level = atoi(argv[i]);
+            entry.level = (audit)atoi(argv[i]);
         else if(string(colName[i]) == string("message"))
             entry.message = string(argv[i]);
         else if(string(colName[i]) == string("year"))

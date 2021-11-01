@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <stdexcept>
+#include <memory>
 
 #include "iptc.h"
 #include "snmp_handler.h"
@@ -100,8 +102,16 @@ pid_t start_program()
     pid_t pid = fork();
     if(!pid)
     {
-        Core core(frequency, path, refresh, threshold);
-        core.cycle();
+        unique_ptr<Core> core = NULL;
+        try
+        {
+            core.reset(new Core(frequency, path, refresh, threshold));
+        }
+        catch(runtime_error& e)
+        {
+            printf("Exception: %s\n", e.what());
+        }
+        core->cycle();
     }
     
     return pid;

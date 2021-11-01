@@ -19,7 +19,7 @@ int IpTc::add_chain(string table, string chain)
     struct xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
@@ -29,7 +29,7 @@ int IpTc::add_chain(string table, string chain)
     //Применяем изменения
     if(!iptc_commit(h))
     {
-        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -45,7 +45,7 @@ int IpTc::flush_chain(string table, string chain)
     struct xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
@@ -55,7 +55,7 @@ int IpTc::flush_chain(string table, string chain)
     //Применяем изменения
     if(!iptc_commit(h))
     {
-        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -71,13 +71,13 @@ int IpTc::del_rule_by_index(string table, string chain, unsigned int index)
     struct xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
     if(!iptc_delete_num_entry(chain.data(), index, h))
     {
-        log->print(1, string("Failed to delete entry from netfilter: ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to delete entry from netfilter: ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -85,7 +85,7 @@ int IpTc::del_rule_by_index(string table, string chain, unsigned int index)
     
     if(!iptc_commit(h))
     {
-        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -100,7 +100,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     struct ipt_entry* chain_entry = (struct ipt_entry*) calloc(1, sizeof (struct ipt_entry));
     if(!chain_entry)
     {
-        log->print(1, string("Failed to allocate memory for struct ipt_entry in add_rule function"));
+        log->print(audit::error, string("Failed to allocate memory for struct ipt_entry in add_rule function"));
         return -1;
     }
     
@@ -182,7 +182,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     xtc_handle *h = iptc_init(table.data());
     if(!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -195,7 +195,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Проверяем наличие цепочки
     if(!iptc_is_chain(chain.data(), h))
     {
-        log->print(1, string("No ") + chain + string(" chain found"));
+        log->print(audit::error, string("No ") + chain + string(" chain found"));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -211,7 +211,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     strncpy(labelit, chain.data(), chain.size());
     if(!iptc_insert_entry(labelit, chain_entry, index, h))
     {
-        log->print(1, string("Failed to add entry to netfilter: ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to add entry to netfilter: ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -225,7 +225,7 @@ int IpTc::add_rule(struct rule conditions, string table, string chain, unsigned 
     //Применяем внесенные изменения
     if (!iptc_commit(h))
     {
-        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         free(chain_entry);
         free(entry_target);
         if(entry_match)
@@ -450,13 +450,13 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return -1;
     }
     
     if(!iptc_is_chain(chain.data(), h))
     {
-        log->print(1, string("No ") + chain + string(" chain found"));
+        log->print(audit::error, string("No ") + chain + string(" chain found"));
         iptc_free(h);
         return -1;
     }
@@ -471,7 +471,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
             policy_str = "ACCEPT";
             break;
         default:
-            log->print(1, string("Unknown policy code - ")  + to_string(policy));
+            log->print(audit::error, string("Unknown policy code - ")  + to_string(policy));
             iptc_free(h);
             return -1;
     }
@@ -479,7 +479,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     struct ipt_counters counters;
     if (!iptc_set_policy(chain.data(), policy_str.data(), &counters, h))
     {
-        log->print(1, string("Failed to set ")  + to_string(policy) + string(" policy to ") + chain + string(" chain"));
+        log->print(audit::error, string("Failed to set ")  + to_string(policy) + string(" policy to ") + chain + string(" chain"));
         iptc_free(h);
         return -1;
     }
@@ -487,7 +487,7 @@ int IpTc::change_policy(std::string table, std::string chain, uint8_t policy)
     //Применяем внесенные изменения
     if (!iptc_commit(h))
     {
-        log->print(1, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to commit to ") + table + string(" table : ") + string(iptc_strerror(errno)));
         iptc_free(h);
         return -1;
     }
@@ -501,12 +501,12 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
     struct xtc_handle *h = iptc_init(table.data());
     if (!h)
     {
-        log->print(1, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
+        log->print(audit::error, string("Failed to initialize ") + table + string(" table : ") + string(iptc_strerror(errno)));
         return {};
     }
     if(!iptc_is_chain(chain.data(), h))
     {
-        log->print(1, string("No ") + chain + string(" chain found"));
+        log->print(audit::error, string("No ") + chain + string(" chain found"));
         return {};
     }
     
@@ -522,7 +522,7 @@ pair<map<unsigned int, struct rule>, uint8_t> IpTc::print_rules(string table, st
             policy = 1;
         else
         {
-            log->print(1, string("Failed to interpret ")  + to_string(policy) + string(" policy"));
+            log->print(audit::error, string("Failed to interpret ")  + to_string(policy) + string(" policy"));
             return {};
         }
     }

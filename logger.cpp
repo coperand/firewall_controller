@@ -17,10 +17,10 @@ Logger::~Logger()
     
 }
 
-void Logger::print(uint8_t level, string message)
+void Logger::print(audit level, string message)
 {
     //Пропускаем сообщения неподходящего уровня
-    if(level > *audit_lvl)
+    if((uint8_t)level > *audit_lvl)
         return;
     
     //Заполняем структуру с датой

@@ -130,7 +130,7 @@ int Core::add_rule(unsigned int index)
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     
-    log_ptr->print(2, string("Adding rule: ") + serialize_rule_to_str(index));
+    log_ptr->print(audit::info, string("Adding rule: ") + serialize_rule_to_str(index));
     
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
@@ -156,7 +156,7 @@ int Core::del_rule(unsigned int index)
     else
         return SNMP_ERR_INCONSISTENTVALUE;
     
-    log_ptr->print(2, string("Deleting rule: ") + serialize_rule_to_str(index));
+    log_ptr->print(audit::info, string("Deleting rule: ") + serialize_rule_to_str(index));
     
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
@@ -167,7 +167,7 @@ int Core::change_policy(uint8_t policy)
 {
     instance_pointer->iptc_timer -= chrono::seconds(instance_pointer->refresh_timeout + 1);
     
-    log_ptr->print(2, string("Changing policy to ") + to_string(policy));
+    log_ptr->print(audit::info, string("Changing policy to ") + to_string(policy));
     
     return instance_pointer->iptc.change_policy("mangle", "PREROUTING", policy);
 }

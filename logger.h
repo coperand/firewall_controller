@@ -18,7 +18,7 @@ public:
     Logger(const Logger&) = delete;
     void operator=(const Logger&) = delete;
     
-    void print(uint8_t level, std::string message);
+    void print(audit level, std::string message);
 private:
     std::map<unsigned int, struct event>* events = NULL;
     std::map<unsigned int, struct event>::iterator* events_it = NULL;

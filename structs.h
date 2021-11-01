@@ -10,7 +10,7 @@ struct range
     uint16_t max;
 };
 
-//Вохможные значения протокола
+//Возможные значения протокола
 enum class protocol: uint8_t
 {
     none = 0,
@@ -57,10 +57,18 @@ struct dateAndTime
     uint8_t second_part = 0;
 };
 
+//Возможные значения уровня аудита
+enum class audit: uint8_t
+{
+    none = 0,
+    error = 1,
+    info = 6
+};
+
 //Структура события аудита
 struct event
 {
-    uint8_t level = 0;
+    audit level = audit::none;
     std::string message = {};
     dateAndTime time = {};
 };
