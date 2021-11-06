@@ -1,0 +1,8 @@
+Package: fcontroller
+Version: 1.0
+Section: unknown
+Priority: optional
+Depends: libip4tc2, libsnmp35, libsqlite3-0, libstdc++6, lib32gcc-s1, libc6
+Architecture: amd64
+Maintainer: Petelin Andrey, KB-161 group
+Description: Remote netlink rules manager based on an SNMP protocol
