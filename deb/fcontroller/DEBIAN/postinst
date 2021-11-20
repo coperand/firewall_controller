@@ -1,0 +1,17 @@
+#!/bin/bash
+
+CONFIG_FILE=/etc/snmp/snmpd.conf
+
+RO_USER=user
+RO_SHA=pojrge24-1
+RO_DES=98yhr_sa1
+
+RW_USER=admin
+RW_SHA=sdpj32=r09
+RW_DES=09me0q2l@s
+
+printf "createuser %s SHA %s DES %s\n" $RO_USER $RO_SHA $RO_DES >> $CONFIG_FILE
+printf "createuser %s SHA %s DES %s\n" $RW_USER $RW_SHA $RW_DES >> $CONFIG_FILE
+
+printf "rouser %s authpriv\n" $RO_USER >> $CONFIG_FILE
+printf "rwuser %s authpriv\n" $RW_USER >> $CONFIG_FILE
