@@ -4,20 +4,20 @@ CONFIG_FILE=/etc/snmp/snmpd.conf
 
 RO_USER=user
 RO_SHA=pojrge24-1
-RO_DES=98yhr_sa1
+RO_AES=98yhr_sa1
 
 RW_USER=admin
 RW_SHA=sdpj32=r09
-RW_DES=09me0q2l@s
+RW_AES=09me0q2l@s
 
-if ! grep -q "createuser $RO_USER SHA $RO_SHA DES $RO_DES" $CONFIG_FILE;
+if ! grep -q "createuser $RO_USER SHA $RO_SHA AES $RO_AES" $CONFIG_FILE;
 then
-  printf "createuser %s SHA %s DES %s\n" $RO_USER $RO_SHA $RO_DES >> $CONFIG_FILE
+  printf "createuser %s SHA %s AES %s\n" $RO_USER $RO_SHA $RO_AES >> $CONFIG_FILE
 fi
 
-if ! grep -q "createuser $RW_USER SHA $RW_SHA DES $RW_DES" $CONFIG_FILE;
+if ! grep -q "createuser $RW_USER SHA $RW_SHA AES $RW_AES" $CONFIG_FILE;
 then
-  printf "createuser %s SHA %s DES %s\n" $RW_USER $RW_SHA $RW_DES >> $CONFIG_FILE
+  printf "createuser %s SHA %s AES %s\n" $RW_USER $RW_SHA $RW_AES >> $CONFIG_FILE
 fi
 
 if ! grep -q "rouser $RO_USER authpriv" $CONFIG_FILE;
