@@ -294,7 +294,7 @@ int SnmpHandler::request_handler(netsnmp_mib_handler *handler, netsnmp_handler_r
                         break;
                     
                     case columns::state:
-                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_INTEGER, request, reqinfo);
+                        get_integer<uint8_t>(reinterpret_cast<uint8_t*>(&reinterpret_cast<struct rule*>(data_context)->state), ASN_OCTET_STR, request, reqinfo);
                         break;
                     
                     case columns::action:
@@ -791,7 +791,7 @@ int SnmpHandler::level_request_handler(netsnmp_mib_handler *handler, netsnmp_han
 template <typename T>
 void SnmpHandler::get_integer(T* data, int type, netsnmp_request_info *request, netsnmp_agent_request_info *reqinfo)
 {
-    if(*data == 0)
+    if(*data == 0 || *data == (T)~0)
     {
         netsnmp_set_request_error(reqinfo, request, SNMP_NOSUCHINSTANCE);
         return;

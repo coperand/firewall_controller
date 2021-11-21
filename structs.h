@@ -62,7 +62,7 @@ enum class audit: uint8_t
 {
     none = 0,
     error = 1,
-    info = 6
+    info = 2
 };
 
 //Структура события аудита

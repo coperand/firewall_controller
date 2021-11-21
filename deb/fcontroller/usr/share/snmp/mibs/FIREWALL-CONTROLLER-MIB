@@ -161,11 +161,10 @@ fcDstPortMax OBJECT-TYPE
 fcState OBJECT-TYPE
     SYNTAX     BIT STRING
                        {
-                        none(0),
-                        invalid(1),
-                        established(2),
-                        related(4),
-                        new(8),
+                        new(4),
+                        related(5),
+                        established(6),
+                        invalid(7)
                        }
     MAX-ACCESS read-create
     STATUS     current
